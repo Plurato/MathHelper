@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mathhelper-rl"
+version = "0.1.0"
+description = "Post-training experiments for math reasoning with SFT, GRPO/DAPO, and math benchmarks."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "accelerate",
+  "datasets",
+  "matplotlib",
+  "pandas",
+  "peft",
+  "pyarrow",
+  "sympy",
+  "torch",
+  "tqdm",
+  "transformers",
+  "trl",
+]
+
+[project.optional-dependencies]
+train = ["bitsandbytes"]
+eval = ["math-verify"]
+dev = ["ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

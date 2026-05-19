@@ -1,0 +1,16 @@
+accelerate
+datasets
+matplotlib
+pandas
+peft
+pyarrow
+sympy
+torch
+tqdm
+transformers
+trl
+
+# Optional but useful:
+# bitsandbytes     # 4-bit QLoRA training/evaluation on CUDA
+# math-verify      # stronger LaTeX/math answer verification
+
