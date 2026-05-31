@@ -1,16 +1,11 @@
-accelerate
-datasets
-matplotlib
-pandas
-peft
-pyarrow
-sympy
-torch
-tqdm
-transformers
-trl
+openai>=1.40
+pydantic>=2.6
+python-dotenv>=1.0
 
-# Optional but useful:
-# bitsandbytes     # 4-bit QLoRA training/evaluation on CUDA
-# math-verify      # stronger LaTeX/math answer verification
+# Dev / test (optional):
+# pytest
+# ruff
 
+# Reserved for solving/verification agent (optional):
+# sympy
+# numpy

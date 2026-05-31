@@ -1,3 +1,19 @@
+Metadata-Version: 2.4
+Name: mathcoach-agent
+Version: 0.1.0
+Summary: Multi-agent math coaching system with problem understanding, solving, verification, and teaching.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: openai>=1.40
+Requires-Dist: pydantic>=2.6
+Requires-Dist: python-dotenv>=1.0
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Provides-Extra: solve
+Requires-Dist: sympy; extra == "solve"
+Requires-Dist: numpy; extra == "solve"
+
 # MathCoach-Agent
 
 Multi-agent math coaching system that breaks problem solving into structured stages:
@@ -27,21 +43,6 @@ cp .env.example .env
 ```bash
 python scripts/demo_agents.py
 python scripts/demo_agents.py --question "Solve x^2 - 5x + 6 = 0."
-```
-
-By default the demo prints full execution traces for each agent:
-- prompts sent to the model
-- reasoning content (when supported by the model provider)
-- raw LLM response
-- parsed JSON and validated output
-- token usage
-
-Optional flags:
-
-```bash
-python scripts/demo_agents.py --quiet          # final outputs only
-python scripts/demo_agents.py --hide-prompts   # hide system/user prompts
-python scripts/demo_agents.py --no-reasoning   # skip reasoning request
 ```
 
 ## Run Tests

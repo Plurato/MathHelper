@@ -1,0 +1,11 @@
+openai>=1.40
+pydantic>=2.6
+python-dotenv>=1.0
+
+[dev]
+pytest
+ruff
+
+[solve]
+sympy
+numpy
