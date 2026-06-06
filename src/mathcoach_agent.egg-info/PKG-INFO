@@ -45,6 +45,21 @@ python scripts/demo_agents.py
 python scripts/demo_agents.py --question "Solve x^2 - 5x + 6 = 0."
 ```
 
+By default the demo prints full execution traces for each agent:
+- prompts sent to the model
+- reasoning content (when supported by the model provider)
+- raw LLM response
+- parsed JSON and validated output
+- token usage
+
+Optional flags:
+
+```bash
+python scripts/demo_agents.py --quiet          # final outputs only
+python scripts/demo_agents.py --hide-prompts   # hide system/user prompts
+python scripts/demo_agents.py --no-reasoning   # skip reasoning request
+```
+
 ## Run Tests
 
 ```bash
