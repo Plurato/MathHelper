@@ -18,6 +18,7 @@ env/
 
 # Experiment artifacts
 outputs/
+output/eval/
 result/
 results/
 logs/
@@ -27,7 +28,8 @@ tensorboard/
 checkpoints/
 
 # Local datasets and model weights
-data/
+data/*
+!data/eval/
 model/
 models/
 *.safetensors

@@ -1,0 +1,309 @@
+{
+  "version": "v01",
+  "description": "Hand-curated 20-problem dev set. Group A = should pass, B = edge case, C = unverifiable.",
+  "problems": [
+    {
+      "id": "A01",
+      "group": "A",
+      "type": "解方程",
+      "knowledge_points": ["一元二次方程", "因式分解"],
+      "difficulty": "easy",
+      "expected_verifier": "should_pass",
+      "question": "解方程 $x^2 - 5x + 6 = 0$。",
+      "truth": {
+        "answer": [
+          {"label": "x", "latex": "$x_1=2,\\ x_2=3$", "sympy": "[2, 3]", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "因式分解 (x-2)(x-3)=0。"
+    },
+    {
+      "id": "A02",
+      "group": "A",
+      "type": "三角函数值",
+      "knowledge_points": ["三角函数特殊角"],
+      "difficulty": "easy",
+      "expected_verifier": "should_pass",
+      "question": "求 $\\cos\\dfrac{5\\pi}{6}$ 的值。",
+      "truth": {
+        "answer": [
+          {"label": "cos(5π/6)", "latex": "$-\\dfrac{\\sqrt{3}}{2}$", "sympy": "-sqrt(3)/2", "numeric": -0.8660254037844386, "unit": null}
+        ]
+      },
+      "notes": "5π/6 在第二象限，参考角 π/6。"
+    },
+    {
+      "id": "A03",
+      "group": "A",
+      "type": "解三角形",
+      "knowledge_points": ["余弦定理", "三角函数特殊角"],
+      "difficulty": "medium",
+      "expected_verifier": "should_pass",
+      "question": "在 $\\triangle ABC$ 中，已知 $b = \\sqrt{7}$，$c = \\sqrt{3}$，$\\cos B = -\\dfrac{\\sqrt{3}}{2}$，求角 $B$ 与边 $a$。",
+      "truth": {
+        "answer": [
+          {"label": "角B", "latex": "$\\dfrac{5\\pi}{6}$", "sympy": "5*pi/6", "numeric": 2.6179938779914944, "unit": "rad"},
+          {"label": "边a", "latex": "$1$", "sympy": "1", "numeric": 1.0, "unit": null}
+        ]
+      },
+      "notes": "由 cos B = -√3/2 得 B = 5π/6；代入余弦定理 b² = a² + c² - 2ac·cos B 得 a² + 3a - 4 = 0，取正根 a=1。"
+    },
+    {
+      "id": "A04",
+      "group": "A",
+      "type": "函数极值",
+      "knowledge_points": ["导数", "闭区间最值"],
+      "difficulty": "medium",
+      "expected_verifier": "should_pass",
+      "question": "求函数 $f(x) = x^3 - 3x + 1$ 在闭区间 $[-2, 2]$ 上的最大值与最小值。",
+      "truth": {
+        "answer": [
+          {"label": "最大值", "latex": "$3$", "sympy": "3", "numeric": 3.0, "unit": null},
+          {"label": "最小值", "latex": "$-1$", "sympy": "-1", "numeric": -1.0, "unit": null}
+        ]
+      },
+      "notes": "f'(x)=3x²-3=0 → x=±1；端点 f(-2)=-1, f(2)=3；驻点 f(-1)=3, f(1)=-1。"
+    },
+    {
+      "id": "A05",
+      "group": "A",
+      "type": "等差数列",
+      "knowledge_points": ["等差数列前n项和"],
+      "difficulty": "easy",
+      "expected_verifier": "should_pass",
+      "question": "等差数列 $\\{a_n\\}$ 中，$a_1 = 2$，公差 $d = 3$，求前 $10$ 项之和 $S_{10}$。",
+      "truth": {
+        "answer": [
+          {"label": "S_10", "latex": "$155$", "sympy": "155", "numeric": 155.0, "unit": null}
+        ]
+      },
+      "notes": "S_n = n·a_1 + n(n-1)/2·d = 20 + 135 = 155。"
+    },
+    {
+      "id": "A06",
+      "group": "A",
+      "type": "等比数列",
+      "knowledge_points": ["等比数列通项"],
+      "difficulty": "easy",
+      "expected_verifier": "should_pass",
+      "question": "等比数列 $\\{a_n\\}$ 中，$a_1 = 3$，公比 $q = 2$，求 $a_6$。",
+      "truth": {
+        "answer": [
+          {"label": "a_6", "latex": "$96$", "sympy": "96", "numeric": 96.0, "unit": null}
+        ]
+      },
+      "notes": "a_6 = a_1·q^5 = 3·32 = 96。"
+    },
+    {
+      "id": "A07",
+      "group": "A",
+      "type": "导数计算",
+      "knowledge_points": ["乘积求导", "三角函数导数"],
+      "difficulty": "medium",
+      "expected_verifier": "should_pass",
+      "question": "设 $f(x) = x^2 \\sin x$，求 $f'(\\pi)$ 的值。",
+      "truth": {
+        "answer": [
+          {"label": "f'(π)", "latex": "$-\\pi^2$", "sympy": "-pi**2", "numeric": -9.869604401089358, "unit": null}
+        ]
+      },
+      "notes": "f'(x) = 2x sin x + x² cos x；代入 x=π：0 + π²·(-1) = -π²。"
+    },
+    {
+      "id": "A08",
+      "group": "A",
+      "type": "三角化简",
+      "knowledge_points": ["二倍角公式"],
+      "difficulty": "medium",
+      "expected_verifier": "should_pass",
+      "question": "化简 $\\dfrac{\\sin 2x}{1 + \\cos 2x}$（其中 $\\cos x \\ne 0$）。",
+      "truth": {
+        "answer": [
+          {"label": "化简结果", "latex": "$\\tan x$", "sympy": "tan(x)", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "sin 2x = 2 sin x cos x；1 + cos 2x = 2cos²x；约简得 tan x。"
+    },
+    {
+      "id": "A09",
+      "group": "A",
+      "type": "一元二次不等式",
+      "knowledge_points": ["不等式求解"],
+      "difficulty": "easy",
+      "expected_verifier": "should_pass",
+      "question": "解不等式 $(x - 1)(x - 3) > 0$。",
+      "truth": {
+        "answer": [
+          {"label": "解集", "latex": "$x<1$ 或 $x>3$", "sympy": "Union(Interval.open(-oo, 1), Interval.open(3, oo))", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "两根 1, 3；二次系数正，开口朝上，>0 取两根之外。注意：解集形式较自由，grader 可能在结构层判格式不一致。"
+    },
+    {
+      "id": "A10",
+      "group": "A",
+      "type": "定积分",
+      "knowledge_points": ["定积分基本计算"],
+      "difficulty": "medium",
+      "expected_verifier": "should_pass",
+      "question": "计算定积分 $\\displaystyle\\int_0^1 x^2\\, dx$。",
+      "truth": {
+        "answer": [
+          {"label": "积分值", "latex": "$\\dfrac{1}{3}$", "sympy": "1/3", "numeric": 0.3333333333333333, "unit": null}
+        ]
+      },
+      "notes": "原函数 x³/3，代入端点。"
+    },
+    {
+      "id": "B01",
+      "group": "B",
+      "type": "三角函数最值",
+      "knowledge_points": ["辅助角公式"],
+      "difficulty": "medium",
+      "expected_verifier": "edge_case",
+      "question": "求 $y = \\sin x + \\sqrt{3}\\cos x$ 的最大值。",
+      "truth": {
+        "answer": [
+          {"label": "最大值", "latex": "$2$", "sympy": "2", "numeric": 2.0, "unit": null}
+        ]
+      },
+      "notes": "化简为 y = 2 sin(x + π/3)。"
+    },
+    {
+      "id": "B02",
+      "group": "B",
+      "type": "含参方程",
+      "knowledge_points": ["因式分解"],
+      "difficulty": "medium",
+      "expected_verifier": "edge_case",
+      "question": "解关于 $x$ 的方程 $x^2 + (m - 1)x - m = 0$（其中 $m$ 为参数）。",
+      "truth": {
+        "answer": [
+          {"label": "x", "latex": "$x_1=1,\\ x_2=-m$", "sympy": "[1, -m]", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "(x-1)(x+m)=0；m=-1 时两根重合为 1。"
+    },
+    {
+      "id": "B03",
+      "group": "B",
+      "type": "数列通项",
+      "knowledge_points": ["累加法", "等差数列求和"],
+      "difficulty": "medium",
+      "expected_verifier": "edge_case",
+      "question": "数列 $\\{a_n\\}$ 中，$a_1 = 1$，$a_{n+1} = a_n + n$（$n \\ge 1$），求通项公式 $a_n$。",
+      "truth": {
+        "answer": [
+          {"label": "a_n", "latex": "$a_n = \\dfrac{n(n-1)}{2} + 1$", "sympy": "n*(n-1)/2 + 1", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "累加：a_n = a_1 + Σ_{k=1}^{n-1} k。验证：a_1=1, a_2=2, a_3=4。"
+    },
+    {
+      "id": "B04",
+      "group": "B",
+      "type": "圆的切线",
+      "knowledge_points": ["圆方程", "点与圆的位置关系"],
+      "difficulty": "medium",
+      "expected_verifier": "edge_case",
+      "question": "求过点 $P(3, 4)$ 与圆 $x^2 + y^2 = 25$ 相切的直线方程。",
+      "truth": {
+        "answer": [
+          {"label": "切线方程", "latex": "$3x + 4y = 25$", "sympy": "3*x + 4*y - 25", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "P 在圆上（3²+4²=25），切线唯一：法向量 (3,4)。truth.sympy 用 LHS-RHS=0 形式；若 pipeline 给出等比例形式（如 6x+8y-50），grader 会判不一致——这是已知局限。"
+    },
+    {
+      "id": "B05",
+      "group": "B",
+      "type": "含参极值条件",
+      "knowledge_points": ["导数", "判别式"],
+      "difficulty": "medium",
+      "expected_verifier": "edge_case",
+      "question": "若函数 $f(x) = x^3 - 3ax + 1$ 在 $\\mathbb{R}$ 上有极值，求实数 $a$ 的取值范围。",
+      "truth": {
+        "answer": [
+          {"label": "a 的范围", "latex": "$a > 0$", "sympy": "Interval.open(0, oo)", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "f'(x)=3x²-3a，要求有两个不同实根，即 a>0。truth 用 Interval 形式表达；若 pipeline 写成 'a > 0'（不等式），grader 可能判格式不一致。"
+    },
+    {
+      "id": "C01",
+      "group": "C",
+      "type": "命题真假",
+      "knowledge_points": ["命题判断"],
+      "difficulty": "easy",
+      "expected_verifier": "unverifiable",
+      "question": "判断命题\"若 $a > b$，则 $a^2 > b^2$\"的真假，并说明理由。",
+      "truth": {
+        "answer": [
+          {"label": "命题真假", "latex": "$\\text{假}$", "sympy": "false", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "反例：a=1, b=-2。"
+    },
+    {
+      "id": "C02",
+      "group": "C",
+      "type": "立体几何证明",
+      "knowledge_points": ["线面垂直", "空间向量"],
+      "difficulty": "medium",
+      "expected_verifier": "unverifiable",
+      "question": "正方体 $ABCD\\text{-}A_1B_1C_1D_1$ 中，证明 $BD_1 \\perp$ 平面 $AB_1C$。",
+      "truth": {
+        "answer": [
+          {"label": "结论", "latex": "$BD_1 \\perp$ 平面 $AB_1C$", "sympy": null, "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "几何证明，无简单 sympy 形式——grader 应跳过比较，记 correct=None。"
+    },
+    {
+      "id": "C03",
+      "group": "C",
+      "type": "应用题",
+      "knowledge_points": ["函数建模", "二次函数极值"],
+      "difficulty": "medium",
+      "expected_verifier": "unverifiable",
+      "question": "某商品成本为每件 $80$ 元，定价为 $x$ 元（$x \\ge 80$），市场调研显示销量约为 $1000 - 2x$ 件。在销量为正的范围内，求使利润最大的定价 $x$，并求最大利润。",
+      "truth": {
+        "answer": [
+          {"label": "最优定价", "latex": "$290$", "sympy": "290", "numeric": 290.0, "unit": "元"},
+          {"label": "最大利润", "latex": "$88200$", "sympy": "88200", "numeric": 88200.0, "unit": "元"}
+        ]
+      },
+      "notes": "P(x)=(x-80)(1000-2x)；P'(x)=-4x+1160=0 → x=290；P(290)=210·420=88200。"
+    },
+    {
+      "id": "C04",
+      "group": "C",
+      "type": "组合概率",
+      "knowledge_points": ["组合数", "对立事件"],
+      "difficulty": "medium",
+      "expected_verifier": "unverifiable",
+      "question": "袋中有 $5$ 个红球和 $3$ 个白球（除颜色外完全相同），从中随机取出 $3$ 个，求至少取出 $1$ 个红球的概率。",
+      "truth": {
+        "answer": [
+          {"label": "概率", "latex": "$\\dfrac{55}{56}$", "sympy": "55/56", "numeric": 0.9821428571428571, "unit": null}
+        ]
+      },
+      "notes": "对立事件：1 - C(3,3)/C(8,3) = 1 - 1/56 = 55/56。"
+    },
+    {
+      "id": "C05",
+      "group": "C",
+      "type": "数列性质证明",
+      "knowledge_points": ["递推关系", "等比数列"],
+      "difficulty": "medium",
+      "expected_verifier": "unverifiable",
+      "question": "数列 $\\{a_n\\}$ 的前 $n$ 项和 $S_n$ 满足 $S_n = 2a_n - 1$，证明 $\\{a_n\\}$ 是等比数列，并求通项公式。",
+      "truth": {
+        "answer": [
+          {"label": "通项公式", "latex": "$a_n = 2^{n-1}$", "sympy": "2**(n-1)", "numeric": null, "unit": null}
+        ]
+      },
+      "notes": "n=1: a_1=1；n≥2: a_n = S_n - S_{n-1} = 2a_n - 2a_{n-1} → a_n = 2a_{n-1}。首项 1，公比 2。"
+    }
+  ]
+}
