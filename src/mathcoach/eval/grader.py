@@ -15,6 +15,9 @@ def compare(
     pipeline: list[AnswerItem], truth: list[AnswerItem]
 ) -> GraderResult:
     if len(pipeline) != len(truth):
+        flat_outcome = _try_flatten_compare(pipeline, truth)
+        if flat_outcome is not None:
+            return flat_outcome
         return GraderResult(
             correct=False,
             layer="structure",
@@ -84,7 +87,7 @@ def _pair_by_label(
 def _compare_item(p_item: AnswerItem, t_item: AnswerItem) -> str | bool:
     """Return layer name on match, False on mismatch.
 
-    Tries set → exact → numeric in turn.
+    Routes by SymPy object type: Set → ==, Boolean → bool(), else simplify(a-b)==0.
     """
     p_sym = _parse(p_item.sympy or "")
     t_sym = _parse(t_item.sympy or "")
@@ -96,6 +99,12 @@ def _compare_item(p_item: AnswerItem, t_item: AnswerItem) -> str | bool:
             return "set"
         return False
 
+    if _is_sympy_set(p_sym) or _is_sympy_set(t_sym):
+        return "exact" if p_sym == t_sym else False
+
+    if _is_boolean_like(p_sym) or _is_boolean_like(t_sym):
+        return "exact" if _to_python_bool(p_sym) == _to_python_bool(t_sym) else False
+
     if _symbolic_equal(p_sym, t_sym):
         return "exact"
 
@@ -105,6 +114,81 @@ def _compare_item(p_item: AnswerItem, t_item: AnswerItem) -> str | bool:
         return "numeric"
 
     return False
+
+
+def _try_flatten_compare(
+    pipeline: list[AnswerItem], truth: list[AnswerItem]
+) -> GraderResult | None:
+    """Handle "1×list-sympy vs N×scalar-sympy" mismatch by flattening both sides
+    to a flat list of SymPy values and comparing as a set.
+
+    Returns None when neither side can be flattened cleanly — caller falls back
+    to its own structure-mismatch handling.
+    """
+    flat_p = _try_flatten(pipeline)
+    flat_t = _try_flatten(truth)
+
+    if flat_p is None or flat_t is None:
+        return None
+    if len(flat_p) != len(flat_t):
+        return None
+
+    if _set_equal(flat_p, flat_t):
+        return GraderResult(correct=True, layer="set", reason="flatten matched")
+    return None
+
+
+def _try_flatten(items: list[AnswerItem]) -> list[Any] | None:
+    if any(it.sympy is None for it in items):
+        return None
+
+    if len(items) == 1:
+        try:
+            parsed = _parse(items[0].sympy or "")
+        except Exception:  # noqa: BLE001
+            return None
+        if isinstance(parsed, list):
+            return parsed
+        return [parsed]
+
+    flat: list[Any] = []
+    for it in items:
+        try:
+            parsed = _parse(it.sympy or "")
+        except Exception:  # noqa: BLE001
+            return None
+        if isinstance(parsed, list):
+            return None  # mixed shape — refuse
+        flat.append(parsed)
+    return flat
+
+
+def _is_sympy_set(obj: Any) -> bool:
+    import sympy
+
+    return isinstance(obj, sympy.Set)
+
+
+def _is_boolean_like(obj: Any) -> bool:
+    import sympy
+
+    if isinstance(obj, bool):
+        return True
+    return isinstance(obj, sympy.logic.boolalg.Boolean) and not isinstance(
+        obj, sympy.logic.boolalg.BooleanFunction
+    ) and obj in (sympy.true, sympy.false)
+
+
+def _to_python_bool(obj: Any) -> bool:
+    import sympy
+
+    if isinstance(obj, bool):
+        return obj
+    if obj is sympy.true:
+        return True
+    if obj is sympy.false:
+        return False
+    return bool(obj)
 
 
 def _symbolic_equal(a: Any, b: Any) -> bool:

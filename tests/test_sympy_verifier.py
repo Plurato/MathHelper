@@ -176,3 +176,13 @@ def test_substitution_into_polynomial() -> None:
 def test_max_min_helpers() -> None:
     assert verify(Assertion(expr="Max(-1, 3, -1, 3)", expected=3)).status == "passed"
     assert verify(Assertion(expr="Min(-1, 3, -1, 3)", expected=-1)).status == "passed"
+
+
+def test_verify_bool_handles_relational_expected() -> None:
+    """Regression for B05 baseline crash: when expr parses to a Relational
+    (e.g. `a > 0`) and expected is `true`, `bool(Relational)` raises in SymPy.
+    The verifier must catch this and return error, not propagate TypeError."""
+    a = Assertion(expr="a > 0", expected=True, description="discriminant condition")
+    r = verify(a)
+    assert r.status == "error"
+    assert "bool" in (r.detail or "").lower()

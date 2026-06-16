@@ -188,7 +188,18 @@ def _verify_bool(expr_obj: Any, expected_obj: Any) -> VerificationResult:
         else expected_obj
     )
 
-    if bool(actual) == bool(expected):
+    try:
+        a_bool = bool(actual)
+        e_bool = bool(expected)
+    except TypeError as exc:
+        return VerificationResult(
+            method="SymPy 布尔验证",
+            status="error",
+            confidence=0.30,
+            detail=f"cannot reduce to bool: {exc}",
+        )
+
+    if a_bool == e_bool:
         return VerificationResult(
             method="SymPy 布尔验证",
             status="passed",

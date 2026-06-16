@@ -235,7 +235,7 @@
       "type": "命题真假",
       "knowledge_points": ["命题判断"],
       "difficulty": "easy",
-      "expected_verifier": "unverifiable",
+      "expected_verifier": "edge_case",
       "question": "判断命题\"若 $a > b$，则 $a^2 > b^2$\"的真假，并说明理由。",
       "truth": {
         "answer": [
@@ -250,7 +250,7 @@
       "type": "立体几何证明",
       "knowledge_points": ["线面垂直", "空间向量"],
       "difficulty": "medium",
-      "expected_verifier": "unverifiable",
+      "expected_verifier": "should_pass",
       "question": "正方体 $ABCD\\text{-}A_1B_1C_1D_1$ 中，证明 $BD_1 \\perp$ 平面 $AB_1C$。",
       "truth": {
         "answer": [
@@ -265,7 +265,7 @@
       "type": "应用题",
       "knowledge_points": ["函数建模", "二次函数极值"],
       "difficulty": "medium",
-      "expected_verifier": "unverifiable",
+      "expected_verifier": "should_pass",
       "question": "某商品成本为每件 $80$ 元，定价为 $x$ 元（$x \\ge 80$），市场调研显示销量约为 $1000 - 2x$ 件。在销量为正的范围内，求使利润最大的定价 $x$，并求最大利润。",
       "truth": {
         "answer": [
@@ -281,7 +281,7 @@
       "type": "组合概率",
       "knowledge_points": ["组合数", "对立事件"],
       "difficulty": "medium",
-      "expected_verifier": "unverifiable",
+      "expected_verifier": "should_pass",
       "question": "袋中有 $5$ 个红球和 $3$ 个白球（除颜色外完全相同），从中随机取出 $3$ 个，求至少取出 $1$ 个红球的概率。",
       "truth": {
         "answer": [
@@ -296,7 +296,7 @@
       "type": "数列性质证明",
       "knowledge_points": ["递推关系", "等比数列"],
       "difficulty": "medium",
-      "expected_verifier": "unverifiable",
+      "expected_verifier": "should_pass",
       "question": "数列 $\\{a_n\\}$ 的前 $n$ 项和 $S_n$ 满足 $S_n = 2a_n - 1$，证明 $\\{a_n\\}$ 是等比数列，并求通项公式。",
       "truth": {
         "answer": [

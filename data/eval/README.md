@@ -30,11 +30,21 @@ returns `correct=None` for such items.
 
 ## Group semantics
 
-| Group | Meaning | Verifier should... | Used to compute |
-|-------|---------|-------------------|-----------------|
-| **A** | Standard textbook problems with clean SymPy-friendly answers | …pass with high confidence | base correctness rate, FP rate (signal floor) |
-| **B** | Edge cases (parameters, free variables, awkward forms, geometric edge) | …still pass but may surface false answers | grader robustness |
-| **C** | Proofs, propositions, applied problems with significant text | …emit `assertions=[]` and trigger confidence cap=0.6 | confirms cap behavior |
+The grouping is a *taxonomy of problem shape*, not a strict promise about
+verifier behavior. The `expected_verifier` field on each problem is the
+prior assertion against which FP/FN are computed; it gets updated when real
+runs reveal it was wrong (this happened in v1 — see `docs/journal.md`).
+
+| Group | Meaning |
+|-------|---------|
+| **A** | Standard textbook problems with clean SymPy-friendly answers |
+| **B** | Edge cases (parameters, free variables, awkward answer shapes like Interval / Relational) |
+| **C** | Proofs, propositions, applied problems with significant text — answer often still numeric/symbolic, but the path through the LLM is more verbal |
+
+`expected_verifier` values:
+- `should_pass` — verifier should give a high-confidence pass
+- `edge_case` — verifier may pass but the answer form / corner case is non-trivial
+- `unverifiable` — we expect verifier to bail (e.g. `assertions=[]`, `cap=0.6`); reserved for problems where the LLM truly cannot emit machine-checkable claims. Note: in the v01 dev set this expectation never matched reality — LLMs found ways to emit verifiable assertions even for proofs.
 
 ## Adding problems
 
