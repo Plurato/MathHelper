@@ -28,7 +28,7 @@ from mathcoach.schemas.inputs import UserQuery
 from mathcoach.utils.trace_printer import print_agent_trace
 
 DEFAULT_QUESTION = (
-    "求函数 f(x)=x^3-3x+1 在区间 [-2,2] 上的最大值和最小值。"
+    r"""在 △ABC 中，角 A、B、C 的对边分别为 a、b、c，且√3c+a=b cos C-c cos B，求角 B 的大小"""
 )
 
 

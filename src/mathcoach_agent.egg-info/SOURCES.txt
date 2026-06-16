@@ -6,6 +6,8 @@ src/mathcoach/agents/__init__.py
 src/mathcoach/agents/base.py
 src/mathcoach/agents/problem_understanding.py
 src/mathcoach/agents/solving_planning.py
+src/mathcoach/agents/solving_verification.py
+src/mathcoach/agents/teaching_explanation.py
 src/mathcoach/agents/trace.py
 src/mathcoach/llm/__init__.py
 src/mathcoach/llm/chat_result.py
@@ -13,10 +15,16 @@ src/mathcoach/llm/openrouter_client.py
 src/mathcoach/prompts/__init__.py
 src/mathcoach/prompts/problem_understanding.py
 src/mathcoach/prompts/solving_planning.py
+src/mathcoach/prompts/solving_verification.py
+src/mathcoach/prompts/teaching_explanation.py
 src/mathcoach/schemas/__init__.py
 src/mathcoach/schemas/inputs.py
 src/mathcoach/schemas/plan.py
 src/mathcoach/schemas/problem.py
+src/mathcoach/schemas/teaching.py
+src/mathcoach/schemas/verification.py
+src/mathcoach/tools/__init__.py
+src/mathcoach/tools/sympy_verifier.py
 src/mathcoach/utils/__init__.py
 src/mathcoach/utils/json_parser.py
 src/mathcoach/utils/trace_printer.py
@@ -27,4 +35,5 @@ src/mathcoach_agent.egg-info/requires.txt
 src/mathcoach_agent.egg-info/top_level.txt
 tests/test_json_parser.py
 tests/test_schemas.py
+tests/test_sympy_verifier.py
 tests/test_trace_printer.py
