@@ -200,29 +200,40 @@
 }
 ```
 
-### 工具调用示例
+### 工具调用方式：`Assertion` 原语
 
-```python
-import sympy as sp
+求解验证 Agent 在生成 `solution_steps` 与 `answer` 的同时，**额外输出一份 `assertions` 列表**——每条 assertion 是一个机器可校验的"声明"：
 
-x = sp.symbols("x")
-f = x**3 - 3*x + 1
-
-points = [-2, -1, 1, 2]
-values = {p: f.subs(x, p) for p in points}
-
-print(values)
+```json
+"assertions": [
+  {"expr": "diff(x**3 - 3*x + 1, x)", "expected": "3*x**2 - 3", "description": "求导"},
+  {"expr": "solve(3*x**2 - 3, x)", "expected": [-1, 1], "description": "驻点"},
+  {"expr": "(x**3 - 3*x + 1).subs(x, -1)", "expected": 3, "description": "f(-1)"},
+  {"expr": "Max(-1, 3, -1, 3)", "expected": 3, "description": "最大值"}
+]
 ```
 
-输出结果：
+每条 assertion 的语义：**LLM 声称 `expr` 在求值后等于 `expected`**。downstream 的 SymPy 验证器（`mathcoach.tools.sympy_verifier.verify`）独立计算每个 `expr`，与 `expected` 对账：
 
 ```python
-{-2: -1, -1: 3, 1: -1, 2: 3}
+# 概念性的 verifier 流程（详见 src/mathcoach/tools/sympy_verifier.py）
+diff = simplify(parse(expr) - parse(expected))
+if diff == 0:                   # symbolic 路径，confidence=0.95
+    return passed
+if abs(float(diff.evalf())) <= tol:  # numeric 路径，0.90
+    return passed
+# 当 assertion 含 free_vars（恒等式型）时，多次抽样：N=10，0.85
 ```
+
+聚合规则：N 项 assertion 全 passed → overall passed；任一 failed → overall failed（含失败定位）；任一 error → overall error。**verifier 的判断会覆盖 LLM 自报的 `verification.confidence`**——任何 LLM 自封的 1.0 都拿不到外部信号背书前的最高分。
+
+不可机器验证的题目（开放性证明、构造、解释类），LLM 应输出 `"assertions": []`，系统会把 LLM 自评 confidence 上限封顶到 0.6。
+
+详细设计与字段约束见 [`openspec/changes/archive/...`](./openspec/) 中 `assertion-based-verifier` 的 design.md。
 
 ### 设计意义
 
-求解验证 Agent 是系统可靠性的核心。它不仅生成答案，还通过工具验证结果，减少大模型幻觉和计算错误。
+求解验证 Agent 是系统可靠性的核心。**LLM 解题、SymPy 校验**，两者解耦：LLM 负责理解题面与策略选择，SymPy 负责对 LLM 写出的每一条数学声明做独立审计。这种"球员+裁判分离"是教练系统出口可信度的关键。
 
 ---
 

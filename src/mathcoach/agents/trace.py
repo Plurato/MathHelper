@@ -10,7 +10,8 @@ TOutput = TypeVar("TOutput")
 
 @dataclass(frozen=True)
 class LLMStepTrace:
-    """Trace for a single LLM call within an agent run."""
+    """One step in an agent run — either an LLM call (`kind="llm"`) or a
+    tool invocation such as the SymPy verifier (`kind="tool"`)."""
 
     attempt: int
     raw_response: str
@@ -22,12 +23,11 @@ class LLMStepTrace:
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     total_tokens: int | None = None
+    kind: Literal["llm", "tool"] = "llm"
 
 
 @dataclass(frozen=True)
 class AgentRunTrace:
-    """Full execution trace for one agent invocation."""
-
     agent_name: str
     system_prompt: str
     user_prompt: str
@@ -36,7 +36,5 @@ class AgentRunTrace:
 
 @dataclass(frozen=True)
 class AgentRunResult(Generic[TOutput]):
-    """Validated agent output bundled with its execution trace."""
-
     output: TOutput
     trace: AgentRunTrace

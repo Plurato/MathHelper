@@ -5,19 +5,19 @@ from mathcoach.schemas.plan import SolvingPlan
 from mathcoach.schemas.problem import ProblemUnderstanding
 from mathcoach.schemas.teaching import TeachingExplanation
 from mathcoach.schemas.verification import (
+    AnswerItem,
+    Assertion,
     SolvingVerification,
-    VerifiableArtifact,
-    VerifiableKind,
     VerificationResult,
 )
 
 __all__ = [
+    "AnswerItem",
+    "Assertion",
     "ProblemUnderstanding",
     "SolvingPlan",
     "SolvingVerification",
     "TeachingExplanation",
     "UserQuery",
-    "VerifiableArtifact",
-    "VerifiableKind",
     "VerificationResult",
 ]

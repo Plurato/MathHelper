@@ -30,14 +30,16 @@
 - [x] 四个 Agent 的核心实现（Prompt + Schema + Agent 类）
 - [x] 基于 OpenRouter 的 LLM 调用与 JSON 结构化输出解析
 - [x] 完整 4 Agent 流水线 CLI 演示（`scripts/demo_agents.py`）
-- [x] 执行追踪（Trace）：Prompt、推理内容、原始响应、解析结果、Token 用量
+- [x] 执行追踪（Trace）：Prompt、推理内容、原始响应、解析结果、Token 用量；区分 LLM 步与 Tool 步
 - [x] Pydantic 数据模型与基础单元测试
+- [x] **数学输出 LaTeX 规范化**：所有展示字段强制 `$...$` 包裹的 LaTeX；JSON 转义冲突自动修复
+- [x] **求解验证接入 SymPy**：基于 `Assertion` 原语的多项断言验证（symbolic / numeric / sampling 三层兜底）；LLM 自评 confidence 由工具结果覆盖
 
 ### 进行中 / 待开发
 
-- [ ] **SymPy / Python 工具调用**：求解验证 Agent 目前由 LLM 生成验证结论，尚未接入真实数学计算工具（依赖见 `pyproject.toml` 的 `[solve]` 可选包）
-- [ ] **Web 前端界面**：题目输入、流程展示、结果可视化（见 `design.md` 第 10 节）
+- [ ] **Web 前端界面**：题目输入、流程展示、结果可视化（见 `design.md` 第 10 节）；`AnswerItem.latex` 字段已为前端 KaTeX 渲染铺路
 - [ ] **Agent 集成测试**：针对四个 Agent 的端到端测试（需配置 API Key）
+- [ ] **Verifier 自我纠错回路**：当 SymPy 报 failed 时自动把 detail 反馈给解题 Agent 触发重跑
 - [ ] **扩展功能**：错题本、学生画像、RAG 知识库、多轮对话等（见 `design.md` 第 14 节）
 
 ## 快速开始

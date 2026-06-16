@@ -39,4 +39,11 @@ Examples:
 - BAD:  "代入得 cos B = -√3/2，所以 B = 5π/6。"        (bare Unicode + no `$...$`)
 - GOOD: "在 $\\triangle ABC$ 中，$B \\in (0, \\pi)$。"
 - BAD:  "在 △ABC 中，B∈(0, π)。"                     (bare Unicode + no `$...$`)
+
+NOTE: These LaTeX rules apply to display fields (problem statements, plan
+steps, solution_steps, explanation, AnswerItem.latex, practice_questions,
+etc.). They DO NOT apply to tool-facing fields:
+- `assertions[i].expr` and `assertions[i].expected` use raw SymPy syntax,
+  no `$...$`, no `\\sqrt`/`\\pi`. See solving_verification prompt.
+- `AnswerItem.sympy` uses raw SymPy syntax (e.g. "5*pi/6").
 """

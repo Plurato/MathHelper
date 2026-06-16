@@ -10,42 +10,38 @@ from mathcoach.agents.trace import AgentRunResult, LLMStepTrace
 from mathcoach.prompts.solving_verification import (
     SOLVING_VERIFICATION_FEW_SHOT,
     SOLVING_VERIFICATION_SYSTEM_PROMPT,
-    SOLVING_VERIFICATION_VERIFIABLE_EXAMPLES,
 )
 from mathcoach.schemas.plan import SolvingPlan
 from mathcoach.schemas.problem import ProblemUnderstanding
-from mathcoach.schemas.verification import SolvingVerification
+from mathcoach.schemas.verification import (
+    Assertion,
+    SolvingVerification,
+    VerificationResult,
+)
 from mathcoach.tools import sympy_verifier
 
-# Cap LLM self-reported confidence when no machine-checkable artifact is given.
+# Cap on LLM self-reported confidence when no machine-checkable assertions are
+# supplied; below the cap the LLM's value is preserved.
 _LLM_SELF_REPORT_CONFIDENCE_CAP = 0.6
+_MAX_FAILURE_DETAILS = 3
 
 
 @dataclass(frozen=True)
 class SolvingVerificationInput:
-    """Input bundle for the solving verification agent."""
-
     analysis: ProblemUnderstanding
     plan: SolvingPlan
     original_question: str | None = None
 
 
 class SolvingVerificationAgent(BaseAgent[SolvingVerificationInput, SolvingVerification]):
-    """Execute a detailed solution from the plan and verify the result.
-
-    After the LLM produces structured output, we run a SymPy-backed verifier
-    on the `verifiable` artifact and overwrite `verification` with the tool's
-    independent judgment. If no artifact (or kind="none") is supplied, we cap
-    the LLM's self-assessed confidence so downstream consumers don't trust an
-    unverified 1.0.
-    """
+    """Execute the plan, then replace the LLM's self-reported verification
+    with the SymPy verifier's aggregated judgment over its assertions list."""
 
     name = "SolvingVerificationAgent"
     system_prompt = SOLVING_VERIFICATION_SYSTEM_PROMPT
     output_schema = SolvingVerification
 
     def build_user_prompt(self, input_data: SolvingVerificationInput) -> str:
-        """Build the user prompt from analysis and plan."""
         combined = {
             "problem_type": input_data.analysis.problem_type,
             "knowledge_points": input_data.analysis.knowledge_points,
@@ -56,22 +52,21 @@ class SolvingVerificationAgent(BaseAgent[SolvingVerificationInput, SolvingVerifi
                 "steps": input_data.plan.steps,
             },
         }
-        sections = [f"Problem and plan:\n{json.dumps(combined, ensure_ascii=False, indent=2)}"]
+        sections = [
+            f"Problem and plan:\n{json.dumps(combined, ensure_ascii=False, indent=2)}"
+        ]
         if input_data.original_question:
-            sections.append(f"Original question:\n{input_data.original_question.strip()}")
+            sections.append(
+                f"Original question:\n{input_data.original_question.strip()}"
+            )
 
         few_shot = json.dumps(
             SOLVING_VERIFICATION_FEW_SHOT, ensure_ascii=False, indent=2
         )
-        verifiable_examples = json.dumps(
-            SOLVING_VERIFICATION_VERIFIABLE_EXAMPLES, ensure_ascii=False, indent=2
-        )
         return (
             "\n\n".join(sections)
-            + "\n\nExample:\n"
+            + "\n\nExamples (each shows a different problem type with its assertions):\n"
             + few_shot
-            + "\n\nAdditional `verifiable` shapes (illustrative only — adapt to the problem):\n"
-            + verifiable_examples
             + "\n\nNow solve and verify the problem above, return the JSON object."
         )
 
@@ -79,41 +74,122 @@ class SolvingVerificationAgent(BaseAgent[SolvingVerificationInput, SolvingVerifi
         self, input_data: SolvingVerificationInput
     ) -> AgentRunResult[SolvingVerification]:
         result = super().run_with_trace(input_data)
-        artifact = result.output.verifiable
+        assertions = result.output.assertions or []
 
-        if artifact is None or artifact.kind == "none":
-            # No machine-checkable form. Don't trust LLM self-confidence > cap.
+        if not assertions:
             current = result.output.verification
             if current.confidence > _LLM_SELF_REPORT_CONFIDENCE_CAP:
                 result.output.verification = current.model_copy(
                     update={
                         "confidence": _LLM_SELF_REPORT_CONFIDENCE_CAP,
-                        "detail": (
-                            (current.detail + " | " if current.detail else "")
-                            + "Confidence capped: no machine-checkable artifact provided."
+                        "detail": _append_detail(
+                            current.detail,
+                            "Confidence capped: no assertions supplied for verification.",
                         ),
                     }
                 )
             return result
 
-        tool_result = sympy_verifier.verify(artifact)
-        result.output.verification = tool_result
+        per_item: list[VerificationResult] = [
+            sympy_verifier.verify(a) for a in assertions
+        ]
+        aggregated = _aggregate_results(per_item, assertions)
+        result.output.verification = aggregated
+
+        tool_payload = {
+            "tool": "sympy_verifier",
+            "n_total": len(assertions),
+            "n_passed": sum(1 for r in per_item if r.status == "passed"),
+            "n_failed": sum(1 for r in per_item if r.status == "failed"),
+            "n_error": sum(1 for r in per_item if r.status == "error"),
+            "n_skipped": sum(1 for r in per_item if r.status == "skipped"),
+            "items": [
+                {
+                    "description": a.description,
+                    "expr": a.expr,
+                    "expected": a.expected,
+                    "result": r.model_dump(),
+                }
+                for a, r in zip(assertions, per_item)
+            ],
+            "aggregated": aggregated.model_dump(),
+        }
         result.trace.steps.append(
             LLMStepTrace(
                 attempt=len(result.trace.steps) + 1,
                 raw_response=json.dumps(
-                    artifact.model_dump(), ensure_ascii=False, indent=2
+                    [a.model_dump() for a in assertions],
+                    ensure_ascii=False,
+                    indent=2,
                 ),
                 reasoning=None,
-                parsed_payload={
-                    "tool": "sympy_verifier",
-                    "kind": artifact.kind,
-                    "result": tool_result.model_dump(),
-                },
+                parsed_payload=tool_payload,
                 validation_error=None,
-                # 'success' here means the tool ran; the math verdict lives in tool_result.status.
-                status="success" if tool_result.status != "error" else "failed",
+                status=("success" if aggregated.status != "error" else "failed"),
                 model="sympy",
+                kind="tool",
             )
         )
         return result
+
+
+def _aggregate_results(
+    results: list[VerificationResult], assertions: list[Assertion]
+) -> VerificationResult:
+    n = len(results)
+    passed = [r for r in results if r.status == "passed"]
+    failed_pairs = [
+        (a, r) for a, r in zip(assertions, results) if r.status == "failed"
+    ]
+    error_pairs = [
+        (a, r) for a, r in zip(assertions, results) if r.status == "error"
+    ]
+
+    if failed_pairs:
+        n_failed = len(failed_pairs)
+        sample = failed_pairs[:_MAX_FAILURE_DETAILS]
+        details = "; ".join(
+            f"[{a.description or a.expr[:40]}] {r.detail}" for a, r in sample
+        )
+        return VerificationResult(
+            method=f"SymPy 多项断言验证（{n} 项）",
+            status="failed",
+            confidence=0.05,
+            detail=f"{n_failed}/{n} failed | {details}",
+        )
+
+    if error_pairs:
+        sample = error_pairs[0]
+        return VerificationResult(
+            method=f"SymPy 多项断言验证（{n} 项）",
+            status="error",
+            confidence=0.30,
+            detail=(
+                f"errors in {len(error_pairs)}/{n} items; "
+                f"first: [{sample[0].description or sample[0].expr[:40]}] "
+                f"{sample[1].detail}"
+            ),
+        )
+
+    if not passed:
+        first = results[0]
+        return VerificationResult(
+            method=first.method,
+            status="skipped",
+            confidence=first.confidence,
+            detail=first.detail,
+        )
+
+    min_conf = min(r.confidence for r in passed)
+    return VerificationResult(
+        method=f"SymPy 多项断言验证（{n} 项全部通过）",
+        status="passed",
+        confidence=min_conf,
+        detail=f"{len(passed)}/{n} passed",
+    )
+
+
+def _append_detail(existing: str | None, addition: str) -> str:
+    if not existing:
+        return addition
+    return f"{existing} | {addition}"

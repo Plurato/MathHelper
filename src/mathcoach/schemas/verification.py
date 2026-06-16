@@ -2,80 +2,59 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-VerifiableKind = Literal[
-    "equation_roots",
-    "function_extrema",
-    "trig_identity",
-    "expression_value",
-    "system_solution",
-    "none",
-]
 
+class Assertion(BaseModel):
+    """A single machine-checkable claim emitted by the LLM during solving.
 
-class VerifiableArtifact(BaseModel):
-    """Machine-checkable form of an answer for an external tool (e.g. SymPy).
-
-    The LLM emits this alongside its narrative solution so a Python tool can
-    verify the result independently. Each `kind` carries a different `payload`
-    shape; see `mathcoach.tools.sympy_verifier` for accepted fields.
-
-    All math expressions inside `payload` MUST be valid SymPy strings:
-    use `*` for multiplication, `**` for power, lowercase function names
-    (`sin`, `cos`, `sqrt`, `log`, `exp`), and `pi` / `E` for constants.
-    Do NOT use LaTeX.
+    All math expressions in `expr` and string-form `expected` must be valid
+    SymPy syntax (no LaTeX). When `free_vars` is provided, the verifier
+    samples each free variable in the given range; otherwise it tries a
+    symbolic / numeric scalar comparison.
     """
 
-    kind: VerifiableKind = Field(
-        ..., description="Category of verification the tool should perform."
+    expr: str = Field(..., description="SymPy expression to evaluate.")
+    expected: int | float | str | list[Any] | bool = Field(
+        ...,
+        description="What the LLM claims `expr` evaluates to.",
     )
-    payload: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Kind-specific arguments for the verifier.",
+    description: str | None = Field(default=None)
+    free_vars: dict[str, list[float]] | None = Field(
+        default=None,
+        description="`{name: [low, high]}` sampling ranges for identity checks.",
     )
+    tolerance: float | None = Field(default=None)
+
+
+class AnswerItem(BaseModel):
+    """One labeled answer with parallel display / tool / numeric forms.
+
+    `latex`, `sympy`, and `numeric` MUST be semantically equivalent. The LLM
+    is responsible for keeping them consistent.
+    """
+
+    label: str
+    latex: str
+    sympy: str | None = Field(default=None)
+    numeric: float | None = Field(default=None)
+    unit: str | None = Field(default=None)
 
 
 class VerificationResult(BaseModel):
-    """Verification subsection for the solving verification output."""
-
-    method: str = Field(..., description="Verification method used, e.g. SymPy or numerical.")
+    method: str
     status: str = Field(
         ...,
-        description=(
-            "Verification conclusion: passed / failed / error / skipped / not_verifiable."
-        ),
+        description="passed / failed / error / skipped / not_verifiable",
     )
-    confidence: float = Field(
-        ...,
-        ge=0.0,
-        le=1.0,
-        description="Confidence score between 0 and 1.",
-    )
-    detail: str | None = Field(
-        default=None,
-        description="Optional human-readable detail produced by the verifier.",
-    )
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    detail: str | None = Field(default=None)
 
 
 class SolvingVerification(BaseModel):
-    """Detailed solution and verification produced by the solving verification agent."""
-
-    solution_steps: list[str] = Field(
-        default_factory=list,
-        description="Ordered, detailed solution steps with intermediate results.",
-    )
-    answer: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Final answer expressed as key-value pairs.",
-    )
-    verification: VerificationResult = Field(
-        ...,
-        description="Verification result including method, status and confidence.",
-    )
-    verifiable: VerifiableArtifact | None = Field(
-        default=None,
-        description="Machine-checkable form of the answer for external verification.",
-    )
+    solution_steps: list[str] = Field(default_factory=list)
+    answer: list[AnswerItem] = Field(default_factory=list)
+    verification: VerificationResult
+    assertions: list[Assertion] | None = Field(default=None)

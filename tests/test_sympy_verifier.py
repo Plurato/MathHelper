@@ -1,130 +1,178 @@
-"""Unit tests for the SymPy verifier tool.
+"""Tests for the assertion-based SymPy verifier.
 
-These tests do not call any LLM. They construct VerifiableArtifact instances
-directly and assert that the tool's status / confidence agree with reality.
+These tests construct `Assertion` instances directly and assert that the
+verifier's status / confidence agree with reality. No LLM calls.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from mathcoach.schemas.verification import VerifiableArtifact
+from mathcoach.schemas.verification import Assertion
 from mathcoach.tools.sympy_verifier import verify
 
 pytest.importorskip("sympy")
 
 
 # ---------------------------------------------------------------------------
-# equation_roots
+# Symbolic & numeric scalar paths
 # ---------------------------------------------------------------------------
 
 
-def test_equation_roots_passed():
-    artifact = VerifiableArtifact(
-        kind="equation_roots",
-        payload={"expr": "x**2 - 5*x + 6", "var": "x", "roots": [2, 3]},
-    )
-    result = verify(artifact)
-    assert result.status == "passed"
-    assert result.confidence >= 0.9
+def test_numeric_passed_when_evalf_matches() -> None:
+    a = Assertion(expr="(x**3 - 3*x + 1).subs(x, -1)", expected=3)
+    r = verify(a)
+    assert r.status == "passed"
+    assert r.confidence >= 0.96  # symbolic 0.98 or numerical 0.96
 
 
-def test_equation_roots_failed_when_roots_wrong():
-    artifact = VerifiableArtifact(
-        kind="equation_roots",
-        payload={"expr": "x**2 - 5*x + 6", "var": "x", "roots": [1, 4]},
-    )
-    result = verify(artifact)
-    assert result.status == "failed"
-    assert result.confidence <= 0.2
-    assert "residual" in (result.detail or "")
+def test_symbolic_passed_simplifies_to_zero() -> None:
+    # Both sides are symbolic; simplify reduces (cos(5pi/6) - (-sqrt(3)/2)) to 0.
+    a = Assertion(expr="cos(5*pi/6)", expected="-sqrt(3)/2")
+    r = verify(a)
+    assert r.status == "passed"
+    assert r.confidence == 0.98  # symbolic tier
 
 
-def test_equation_roots_accepts_symbolic_root():
-    # x**2 - 2 = 0 has roots ±sqrt(2); pass them as SymPy strings.
-    artifact = VerifiableArtifact(
-        kind="equation_roots",
-        payload={"expr": "x**2 - 2", "var": "x", "roots": ["sqrt(2)", "-sqrt(2)"]},
-    )
-    assert verify(artifact).status == "passed"
+def test_failed_when_value_differs() -> None:
+    a = Assertion(expr="2 + 2", expected=5)
+    r = verify(a)
+    assert r.status == "failed"
+    assert r.confidence <= 0.1
 
 
 # ---------------------------------------------------------------------------
-# expression_value
+# List / set comparison
 # ---------------------------------------------------------------------------
 
 
-def test_expression_value_passed_numeric():
-    artifact = VerifiableArtifact(
-        kind="expression_value",
-        payload={
-            "expr": "x**3 - 3*x + 1",
-            "substitute": {"x": "-1"},
-            "expected": 3,
-        },
+def test_list_expected_passes_regardless_of_order() -> None:
+    # solve returns [2, 3]; expected lists [3, 2]. Set-style match passes.
+    a = Assertion(
+        expr="solve(x**2 - 5*x + 6, x)",
+        expected=[3, 2],
+        description="roots set",
     )
-    assert verify(artifact).status == "passed"
+    r = verify(a)
+    assert r.status == "passed"
 
 
-def test_expression_value_passed_symbolic():
-    artifact = VerifiableArtifact(
-        kind="expression_value",
-        payload={
-            "expr": "cos(B)",
-            "substitute": {"B": "5*pi/6"},
-            "expected": "-sqrt(3)/2",
-        },
+def test_list_expected_fails_when_member_missing() -> None:
+    a = Assertion(
+        expr="solve(x**2 - 5*x + 6, x)",
+        expected=[2, 4],
     )
-    assert verify(artifact).status == "passed"
+    r = verify(a)
+    assert r.status == "failed"
 
 
-def test_expression_value_failed_when_wrong():
-    artifact = VerifiableArtifact(
-        kind="expression_value",
-        payload={
-            "expr": "x**2",
-            "substitute": {"x": "3"},
-            "expected": 10,
-        },
+def test_list_length_mismatch_fails() -> None:
+    a = Assertion(
+        expr="solve(x**2 - 5*x + 6, x)",
+        expected=[2, 3, 4],
     )
-    result = verify(artifact)
-    assert result.status == "failed"
-    assert "diff" in (result.detail or "")
+    r = verify(a)
+    assert r.status == "failed"
 
 
-def test_expression_value_missing_expected_raises_error_status():
-    artifact = VerifiableArtifact(
-        kind="expression_value",
-        payload={"expr": "x**2", "substitute": {"x": "1"}},
+def test_list_with_symbolic_member_passes() -> None:
+    a = Assertion(
+        expr="solve(x**2 - 2, x)",
+        expected=["sqrt(2)", "-sqrt(2)"],
     )
-    assert verify(artifact).status == "error"
+    r = verify(a)
+    assert r.status == "passed"
 
 
 # ---------------------------------------------------------------------------
-# Error handling and stubs
+# Boolean comparison
 # ---------------------------------------------------------------------------
 
 
-def test_parse_error_returns_error_status():
-    artifact = VerifiableArtifact(
-        kind="equation_roots",
-        payload={"expr": "x ** ?", "var": "x", "roots": [0]},
+def test_bool_assertion_passes() -> None:
+    a = Assertion(expr="5*pi/6 > 0", expected=True)
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_bool_assertion_fails_when_wrong() -> None:
+    a = Assertion(expr="5*pi/6 < 0", expected=True)
+    r = verify(a)
+    assert r.status == "failed"
+
+
+# ---------------------------------------------------------------------------
+# Sampling path (free_vars)
+# ---------------------------------------------------------------------------
+
+
+def test_pythagorean_identity_passes_via_sampling() -> None:
+    a = Assertion(
+        expr="sin(x)**2 + cos(x)**2",
+        expected=1,
+        free_vars={"x": [-3.14, 3.14]},
     )
-    result = verify(artifact)
-    assert result.status == "error"
-    assert result.confidence <= 0.4
+    r = verify(a)
+    assert r.status == "passed"
+    # Expect either symbolic (simplify reduces) or sampling confidence.
+    assert r.confidence >= 0.94  # sampling floor
 
 
-def test_none_kind_marks_not_verifiable():
-    artifact = VerifiableArtifact(kind="none", payload={"reason": "open proof"})
-    result = verify(artifact)
-    assert result.status == "not_verifiable"
-    # Confidence is intentionally neutral, not high.
-    assert 0.4 <= result.confidence <= 0.6
+def test_non_identity_with_free_vars_fails() -> None:
+    a = Assertion(
+        expr="sin(x)",
+        expected="cos(x)",
+        free_vars={"x": [0, 1.0]},
+    )
+    r = verify(a)
+    assert r.status == "failed"
 
 
-def test_unimplemented_kind_returns_skipped():
-    artifact = VerifiableArtifact(kind="function_extrema", payload={})
-    result = verify(artifact)
-    assert result.status == "skipped"
-    assert "未实现" in result.method
+def test_default_sampling_range_when_not_given() -> None:
+    # free_vars value is empty list → default range (-10, 10) is used.
+    a = Assertion(
+        expr="x - x",
+        expected=0,
+        free_vars={"x": []},
+    )
+    r = verify(a)
+    assert r.status == "passed"
+
+
+# ---------------------------------------------------------------------------
+# Error paths
+# ---------------------------------------------------------------------------
+
+
+def test_parse_error_returns_error_status() -> None:
+    a = Assertion(expr="x ** ?", expected=0)
+    r = verify(a)
+    assert r.status == "error"
+    assert r.confidence <= 0.4
+
+
+def test_unbound_symbol_diff_returns_failed_or_error() -> None:
+    # Expected has free var that expr doesn't have a way to reduce against.
+    a = Assertion(expr="x", expected="y")
+    r = verify(a)
+    assert r.status in {"failed", "error"}
+
+
+# ---------------------------------------------------------------------------
+# Integration with a real-world style assertion (sanity)
+# ---------------------------------------------------------------------------
+
+
+def test_substitution_into_polynomial() -> None:
+    a = Assertion(
+        expr="(x**3 - 3*x + 1).subs(x, 2)",
+        expected=3,
+        description="f(2) for f(x)=x^3-3x+1",
+    )
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_max_min_helpers() -> None:
+    assert verify(Assertion(expr="Max(-1, 3, -1, 3)", expected=3)).status == "passed"
+    assert verify(Assertion(expr="Min(-1, 3, -1, 3)", expected=-1)).status == "passed"

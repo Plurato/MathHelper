@@ -38,7 +38,10 @@ TEACHING_EXPLANATION_FEW_SHOT = {
         },
         "goal": "求函数在指定闭区间上的最大值和最小值",
         "method": "导数法",
-        "answer": {"最大值": "$3$", "最小值": "$-1$"},
+        "answer": [
+            {"label": "最大值", "latex": "$3$", "sympy": "3", "numeric": 3.0},
+            {"label": "最小值", "latex": "$-1$", "sympy": "-1", "numeric": -1.0},
+        ],
         "difficulty": "中等",
     },
     "output": {

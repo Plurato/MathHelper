@@ -44,7 +44,7 @@ class TeachingExplanationAgent(BaseAgent[TeachingExplanationInput, TeachingExpla
             "goal": input_data.analysis.goal,
             "difficulty": input_data.analysis.difficulty,
             "method": input_data.plan.method,
-            "answer": input_data.verification.answer,
+            "answer": [item.model_dump() for item in input_data.verification.answer],
         }
         sections = [
             f"Complete solution summary:\n{json.dumps(combined, ensure_ascii=False, indent=2)}"
