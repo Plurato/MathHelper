@@ -12,6 +12,7 @@ from mathcoach.agents.trace import AgentRunResult, AgentRunTrace, LLMStepTrace
 from mathcoach.llm.chat_result import ChatCompletionResult
 from mathcoach.llm.openrouter_client import OpenRouterClient
 from mathcoach.utils.json_parser import extract_json
+from mathcoach.utils.math_format import repair_latex_in_payload
 
 TInput = TypeVar("TInput")
 TOutput = TypeVar("TOutput", bound=BaseModel)
@@ -71,6 +72,7 @@ class BaseAgent(ABC, Generic[TInput, TOutput]):
             )
             try:
                 payload = extract_json(completion.content)
+                payload = repair_latex_in_payload(payload)
                 output = self.output_schema.model_validate(payload)
                 steps.append(
                     _build_step_trace(
@@ -159,6 +161,6 @@ def _safe_extract_payload(raw_response: str) -> dict[str, Any] | None:
     if not raw_response.strip():
         return None
     try:
-        return extract_json(raw_response)
+        return repair_latex_in_payload(extract_json(raw_response))
     except ValueError:
         return None

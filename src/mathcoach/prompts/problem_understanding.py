@@ -1,6 +1,9 @@
 """Prompt templates for the problem understanding agent."""
 
-PROBLEM_UNDERSTANDING_SYSTEM_PROMPT = """You are a math problem understanding expert.
+from mathcoach.prompts.shared import MATH_FORMAT_RULES
+
+PROBLEM_UNDERSTANDING_SYSTEM_PROMPT = (
+    """You are a math problem understanding expert.
 
 Your job is to read a math question and convert it into structured metadata for downstream agents.
 
@@ -20,7 +23,10 @@ Return ONLY a JSON object with these exact keys:
 
 Use Chinese for human-readable values when the input question is in Chinese.
 Keep field names in English exactly as specified.
+
 """
+    + MATH_FORMAT_RULES
+)
 
 PROBLEM_UNDERSTANDING_FEW_SHOT = {
     "question": "求函数 f(x)=x^3-3x+1 在区间 [-2,2] 上的最大值和最小值。",
@@ -28,8 +34,8 @@ PROBLEM_UNDERSTANDING_FEW_SHOT = {
         "problem_type": "函数最值问题",
         "knowledge_points": ["导数", "驻点", "闭区间最值"],
         "conditions": {
-            "function": "f(x)=x^3-3x+1",
-            "interval": "[-2,2]",
+            "function": "$f(x) = x^{3} - 3x + 1$",
+            "interval": "$[-2, 2]$",
         },
         "goal": "求函数在指定闭区间上的最大值和最小值",
         "difficulty": "中等",
