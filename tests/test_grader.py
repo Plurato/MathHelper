@@ -164,3 +164,29 @@ def test_shape_flatten_mixed_types_returns_structure_fail():
     res = compare(pipe, truth)
     assert res.correct is False
     assert res.layer == "structure"
+
+
+def test_type_mismatch_list_vs_scalar_returns_structure():
+    """1-item list answer compared against 1-item scalar answer is a shape
+    mismatch, not a value mismatch — layer must be `structure`."""
+    pipe = [_item("x", "2")]
+    truth = [_item("x", "[2]")]
+    res = compare(pipe, truth)
+    assert res.correct is False
+    assert res.layer == "structure"
+
+
+def test_type_mismatch_set_vs_scalar_returns_structure():
+    pipe = [_item("解集", "2")]
+    truth = [_item("解集", "Interval.open(0, 5)")]
+    res = compare(pipe, truth)
+    assert res.correct is False
+    assert res.layer == "structure"
+
+
+def test_type_mismatch_bool_vs_scalar_returns_structure():
+    pipe = [_item("p", "1")]
+    truth = [_item("p", "true")]
+    res = compare(pipe, truth)
+    assert res.correct is False
+    assert res.layer == "structure"

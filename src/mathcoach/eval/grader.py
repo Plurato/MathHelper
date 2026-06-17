@@ -45,6 +45,12 @@ def compare(
 
         try:
             outcome = _compare_item(p_item, t_item)
+        except _StructureMismatch as exc:
+            return GraderResult(
+                correct=False,
+                layer="structure",
+                reason=f"item '{t_item.label}': {exc}",
+            )
         except Exception as exc:  # noqa: BLE001
             return GraderResult(
                 correct=None,
@@ -85,35 +91,56 @@ def _pair_by_label(
 
 
 def _compare_item(p_item: AnswerItem, t_item: AnswerItem) -> str | bool:
-    """Return layer name on match, False on mismatch.
+    """Return layer name on value match, False on value mismatch.
 
-    Routes by SymPy object type: Set → ==, Boolean → bool(), else simplify(a-b)==0.
+    Raises ``_StructureMismatch`` when the two sides parse to incompatible
+    SymPy shapes (e.g. list vs scalar), so the caller can report
+    ``layer="structure"`` instead of a misleading value mismatch.
+    Routes by shape: list → set-equal, Set → ``==``, Boolean → normalized
+    bool compare, else ``simplify(a-b)==0`` with a numeric fallback.
     """
     p_sym = _parse(p_item.sympy or "")
     t_sym = _parse(t_item.sympy or "")
 
-    if isinstance(p_sym, list) or isinstance(t_sym, list):
-        if not (isinstance(p_sym, list) and isinstance(t_sym, list)):
-            return False
-        if _set_equal(p_sym, t_sym):
-            return "set"
-        return False
+    p_kind = _shape_kind(p_sym)
+    t_kind = _shape_kind(t_sym)
+    if p_kind != t_kind:
+        raise _StructureMismatch(p_kind, t_kind)
 
-    if _is_sympy_set(p_sym) or _is_sympy_set(t_sym):
+    if p_kind == "list":
+        return "set" if _set_equal(p_sym, t_sym) else False
+    if p_kind == "set":
         return "exact" if p_sym == t_sym else False
-
-    if _is_boolean_like(p_sym) or _is_boolean_like(t_sym):
+    if p_kind == "bool":
         return "exact" if _to_python_bool(p_sym) == _to_python_bool(t_sym) else False
 
     if _symbolic_equal(p_sym, t_sym):
         return "exact"
-
     if _numeric_equal(p_item.numeric, t_item.numeric):
         return "numeric"
     if _numeric_equal_via_evalf(p_sym, t_sym):
         return "numeric"
 
     return False
+
+
+class _StructureMismatch(Exception):
+    """Raised by ``_compare_item`` when pipeline and truth shapes disagree."""
+
+    def __init__(self, p_kind: str, t_kind: str) -> None:
+        super().__init__(f"shape mismatch: pipeline={p_kind}, truth={t_kind}")
+        self.p_kind = p_kind
+        self.t_kind = t_kind
+
+
+def _shape_kind(obj: Any) -> str:
+    if isinstance(obj, list):
+        return "list"
+    if _is_sympy_set(obj):
+        return "set"
+    if _is_boolean_like(obj):
+        return "bool"
+    return "scalar"
 
 
 def _try_flatten_compare(

@@ -133,7 +133,7 @@ def compute_aggregate(rows: list[EvalRow]) -> AggregateMetrics:
         1 for r in rows
         if r.expected_verifier == "should_pass" and r.correct is False
     )
-    n_correct_total = max(1, n_correct + n_incorrect)
+    n_graded = n_correct + n_incorrect
     n_fn = sum(
         1 for r in rows
         if r.correct is True and r.verifier_status == "failed"
@@ -147,7 +147,7 @@ def compute_aggregate(rows: list[EvalRow]) -> AggregateMetrics:
         n_pipeline_failed=n_failed,
         correct_rate=(n_correct / n) if n else 0.0,
         fp_rate=(n_fp / n_should_pass) if n_should_pass else 0.0,
-        fn_rate=(n_fn / n_correct_total) if n_correct_total else 0.0,
+        fn_rate=(n_fn / n_graded) if n_graded else 0.0,
     )
 
 
