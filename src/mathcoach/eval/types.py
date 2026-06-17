@@ -66,7 +66,6 @@ class RunMeta(BaseModel):
     git_sha: str
     model_name: str
     agents: list[str]
-    concurrency: int
     n_problems: int
     problems_path: str = ""
     output_dir: str = ""

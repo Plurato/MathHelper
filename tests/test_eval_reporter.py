@@ -97,7 +97,6 @@ def test_write_meta(tmp_path: Path):
         git_sha="abc123",
         model_name="glm-5.1",
         agents=["U", "P", "V"],
-        concurrency=1,
         n_problems=20,
     )
     path = tmp_path / "meta.json"
@@ -121,7 +120,6 @@ def test_write_report_includes_failure_section(tmp_path: Path):
         git_sha="abc",
         model_name="m",
         agents=["U", "P", "V"],
-        concurrency=1,
         n_problems=2,
     )
     path = tmp_path / "report.md"

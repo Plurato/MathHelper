@@ -62,7 +62,6 @@ def write_report(rows: list[EvalRow], path: Path, meta: RunMeta) -> AggregateMet
     lines.append("")
     lines.append(f"- Model: `{meta.model_name}`")
     lines.append(f"- Agents: {' → '.join(meta.agents)}")
-    lines.append(f"- Concurrency: {meta.concurrency}")
     lines.append(f"- Problems: {meta.n_problems} (from `{meta.problems_path}`)")
     lines.append(f"- Git SHA: `{meta.git_sha}`")
     lines.append("")

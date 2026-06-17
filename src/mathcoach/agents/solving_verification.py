@@ -96,6 +96,9 @@ class SolvingVerificationAgent(BaseAgent[SolvingVerificationInput, SolvingVerifi
         aggregated = _aggregate_results(per_item, assertions)
         result.output.verification = aggregated
 
+        # The keys n_total / n_passed / n_failed / n_error form a public
+        # contract consumed by mathcoach.eval.runner._extract_assertion_counts;
+        # rename them only alongside that reader.
         tool_payload = {
             "tool": "sympy_verifier",
             "n_total": len(assertions),

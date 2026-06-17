@@ -25,7 +25,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--full", action="store_true", help="Include Teaching agent (4-agent run)"
     )
-    parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument(
         "--output-dir",
         default="output/eval",
@@ -54,7 +53,6 @@ def main() -> None:
     rows = runner.run(
         problems,
         full_pipeline=args.full,
-        concurrency=args.concurrency,
         traces_dir=traces_dir,
         agent_kwargs={"model": args.model} if args.model else None,
     )
@@ -64,7 +62,6 @@ def main() -> None:
         git_sha=reporter.get_git_sha(),
         model_name=args.model or "default",
         agents=agents_used,
-        concurrency=args.concurrency,
         n_problems=len(problems),
         problems_path=str(Path(args.problems).resolve()),
         output_dir=str(run_dir.resolve()),
