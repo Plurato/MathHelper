@@ -12,10 +12,12 @@ dependencies = [
   "openai>=1.40",
   "pydantic>=2.6",
   "python-dotenv>=1.0",
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff"]
+dev = ["pytest", "ruff", "httpx"]
 # Reserved for the solving/verification agent in a later phase.
 solve = ["sympy", "numpy"]
 
