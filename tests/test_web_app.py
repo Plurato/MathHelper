@@ -55,6 +55,14 @@ def test_frontend_assets_are_served():
     assert "renderResult" in js.text
 
 
+def test_frontend_css_allows_health_pill_to_wrap_on_mobile():
+    css = Path("src/mathcoach/web/static/app.css").read_text(encoding="utf-8")
+
+    assert ".health-pill" in css
+    assert "overflow-wrap: anywhere" in css
+    assert "white-space: normal" in css
+
+
 def test_serve_script_imports():
     script = Path("scripts/serve_web.py")
     assert script.exists()
@@ -93,6 +101,15 @@ def test_solve_missing_key_returns_structured_error(monkeypatch):
 
     assert res.status_code == 503
     assert res.json()["detail"]["code"] == "missing_api_key"
+
+
+def test_solve_blank_question_returns_validation_error():
+    client = TestClient(create_app(require_api_key=False))
+
+    res = client.post("/api/solve", json={"question": "   "})
+
+    assert res.status_code == 422
+    assert res.json()["detail"]["code"] == "invalid_question"
 
 
 def test_solve_pipeline_failure_returns_stage_error():

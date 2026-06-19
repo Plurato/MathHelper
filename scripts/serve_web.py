@@ -12,7 +12,7 @@ import uvicorn
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from mathcoach.web.app import create_app
+from mathcoach.web.app import create_app  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

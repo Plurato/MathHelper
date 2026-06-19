@@ -67,10 +67,20 @@ def create_app(
                 },
             )
 
+        question = request.question.strip()
+        if not question:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "invalid_question",
+                    "message": "Question must not be empty.",
+                },
+            )
+
         model = request.model.strip() if request.model else None
         agent_kwargs = {"model": model} if model else None
         query = UserQuery(
-            question=request.question.strip(),
+            question=question,
             student_level=request.student_level,
             explanation_style=request.explanation_style,
         )
