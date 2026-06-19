@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from mathcoach.pipeline import (
@@ -51,6 +53,14 @@ def test_frontend_assets_are_served():
     assert "mathcoach-shell" in css.text
     assert js.status_code == 200
     assert "renderResult" in js.text
+
+
+def test_serve_script_imports():
+    script = Path("scripts/serve_web.py")
+    assert script.exists()
+    text = script.read_text(encoding="utf-8")
+    assert "uvicorn.run" in text
+    assert "create_app" in text
 
 
 def test_solve_returns_pipeline_result():

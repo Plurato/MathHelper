@@ -121,6 +121,22 @@ python scripts/demo_agents.py --hide-prompts
 python scripts/demo_agents.py --no-reasoning
 ```
 
+## 运行本地 Web 应用
+
+本地 Web 应用会启动一个 Python 服务，同时提供浏览器界面和 API。
+
+```bash
+source .venv/bin/activate
+pip install -e ".[dev,solve]"
+.venv/bin/python scripts/serve_web.py
+```
+
+默认地址为 `http://127.0.0.1:8000`。运行前请确认 `.env` 中已设置 `OPENROUTER_API_KEY`。也可以指定端口：
+
+```bash
+.venv/bin/python scripts/serve_web.py --port 8001
+```
+
 ## 在代码中使用
 
 各 Agent 继承自 `BaseAgent`，可单独调用或自行编排流水线：
