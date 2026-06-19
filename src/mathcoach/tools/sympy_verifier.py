@@ -42,6 +42,24 @@ def verify(assertion: Assertion) -> VerificationResult:
     if isinstance(assertion.expected, list):
         return _verify_list(expr_obj, expected_obj, tolerance)
 
+    # `expected` is a scalar/string/bool here. `expr`, however, can still
+    # evaluate to a container — `solve(eq, x)` returns a list even for a unique
+    # solution, and `solveset` returns a FiniteSet. Reconcile shapes so the
+    # scalar/sampling paths don't crash on `list - <expr>`.
+    listlike_items = _listlike_items(expr_obj)
+    if listlike_items is not None:
+        try:
+            return _verify_listlike_expr_vs_scalar(
+                listlike_items, expected_obj, assertion, tolerance
+            )
+        except Exception as exc:  # noqa: BLE001
+            return VerificationResult(
+                method=f"SymPy 验证异常: {type(exc).__name__}",
+                status="error",
+                confidence=0.30,
+                detail=str(exc),
+            )
+
     if isinstance(assertion.expected, bool) or _is_sympy_bool(expected_obj):
         return _verify_bool(expr_obj, expected_obj)
 
@@ -67,6 +85,87 @@ def verify(assertion: Assertion) -> VerificationResult:
             confidence=0.30,
             detail=str(exc),
         )
+
+
+def _listlike_items(obj: Any) -> list[Any] | None:
+    """Return the elements of a container-valued `expr`, or None if scalar.
+
+    Only explicit containers count: Python ``list``/``tuple``/``dict`` and SymPy
+    ``FiniteSet``/``Tuple``. Generic SymPy expressions (e.g. ``Add``, ``Mul``)
+    are iterable over their args but must NOT be treated as containers here.
+    """
+    import sympy
+
+    if isinstance(obj, (list, tuple)):
+        return list(obj)
+    if isinstance(obj, dict):
+        return list(obj.values())
+    if isinstance(obj, (sympy.FiniteSet, sympy.Tuple)):
+        return list(obj)
+    return None
+
+
+def _verify_listlike_expr_vs_scalar(
+    items: list[Any],
+    expected_obj: Any,
+    assertion: Assertion,
+    tolerance: float,
+) -> VerificationResult:
+    """Compare a container-valued `expr` against a scalar `expected`.
+
+    A single-element container (the common ``solve(eq, x) -> [sol]`` case) is
+    unwrapped and compared scalar-to-scalar. Multiple candidates (multi-root
+    solutions) are treated as a membership test: the assertion passes when the
+    expected scalar matches any candidate.
+    """
+    if len(items) == 0:
+        return VerificationResult(
+            method="SymPy 验证",
+            status="failed",
+            confidence=0.05,
+            detail="expr evaluated to an empty container while a scalar was expected",
+        )
+
+    if len(items) == 1:
+        single = items[0]
+        if assertion.free_vars:
+            return _verify_via_sampling(
+                single, expected_obj, assertion.free_vars, tolerance
+            )
+        return _verify_scalar(single, expected_obj, tolerance)
+
+    for candidate in items:
+        if _scalar_matches(candidate, expected_obj, assertion, tolerance):
+            return VerificationResult(
+                method="SymPy 验证（多解成员匹配）",
+                status="passed",
+                confidence=0.90,
+                detail=f"expected matched one of {len(items)} candidate value(s)",
+            )
+    return VerificationResult(
+        method="SymPy 验证",
+        status="failed",
+        confidence=0.05,
+        detail=f"expected {expected_obj} not among candidates {items}",
+    )
+
+
+def _scalar_matches(
+    expr_obj: Any,
+    expected_obj: Any,
+    assertion: Assertion,
+    tolerance: float,
+) -> bool:
+    try:
+        if assertion.free_vars:
+            result = _verify_via_sampling(
+                expr_obj, expected_obj, assertion.free_vars, tolerance
+            )
+        else:
+            result = _verify_scalar(expr_obj, expected_obj, tolerance)
+    except Exception:  # noqa: BLE001
+        return False
+    return result.status == "passed"
 
 
 def _verify_scalar(expr_obj: Any, expected_obj: Any, tolerance: float) -> VerificationResult:

@@ -121,6 +121,68 @@ def test_nested_list_expected_parses_recursively() -> None:
 
 
 # ---------------------------------------------------------------------------
+# list-valued expr vs scalar expected (solve() returns a singleton list)
+# ---------------------------------------------------------------------------
+
+
+def test_solve_singleton_list_vs_scalar_expected_passes() -> None:
+    """`solve(eq, x)` returns a 1-element list even for a unique solution.
+
+    When the LLM writes `expected` as the scalar answer, the verifier must
+    unwrap the singleton list and compare scalar-to-scalar instead of crashing
+    with `unsupported operand type(s) for -: 'list' and ...`.
+    """
+    a = Assertion(
+        expr="solve(Eq(x/v1, (D - x)/v2), x)",
+        expected="D*v1/(v1 + v2)",
+        description="相向到达河岸时间相等求 x 与 D 的关系",
+    )
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_solve_singleton_list_vs_scalar_with_free_vars_passes() -> None:
+    a = Assertion(
+        expr="solve(Eq(2*x, y), x)",
+        expected="y/2",
+        free_vars={"y": [-5.0, 5.0]},
+    )
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_singleton_list_literal_vs_scalar_passes() -> None:
+    a = Assertion(expr="[255]", expected=255)
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_singleton_list_vs_scalar_fails_when_wrong() -> None:
+    a = Assertion(expr="solve(x - 3, x)", expected=4)
+    r = verify(a)
+    assert r.status == "failed"
+
+
+def test_multi_solution_list_vs_scalar_membership_passes() -> None:
+    """`solve(x**2-4, x)` returns [-2, 2]; expected scalar 2 is one root."""
+    a = Assertion(expr="solve(x**2 - 4, x)", expected=2)
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_multi_solution_list_vs_scalar_membership_fails_when_absent() -> None:
+    a = Assertion(expr="solve(x**2 - 4, x)", expected=5)
+    r = verify(a)
+    assert r.status == "failed"
+
+
+def test_empty_solve_list_vs_scalar_fails_gracefully() -> None:
+    a = Assertion(expr="solve(Eq(x, x + 1), x)", expected=0)
+    r = verify(a)
+    assert r.status == "failed"
+
+
+# ---------------------------------------------------------------------------
 # Boolean comparison
 # ---------------------------------------------------------------------------
 
