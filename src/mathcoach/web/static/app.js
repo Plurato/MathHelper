@@ -165,6 +165,7 @@ function renderResult(result) {
       </div>
     </div>
   `;
+  renderMath(els.resultWorkspace);
 }
 
 function renderAnswerStrip(result) {
@@ -372,6 +373,30 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function renderMath(container) {
+  if (typeof window.renderMathInElement !== "function" || !container) {
+    return;
+  }
+  window.renderMathInElement(container, {
+    delimiters: [
+      { left: "$$", right: "$$", display: true },
+      { left: "$", right: "$", display: false },
+      { left: "\\(", right: "\\)", display: false },
+      { left: "\\[", right: "\\]", display: true },
+    ],
+    ignoredTags: [
+      "script",
+      "noscript",
+      "style",
+      "textarea",
+      "pre",
+      "code",
+      "option",
+    ],
+    throwOnError: false,
+  });
 }
 
 function drawCurve() {

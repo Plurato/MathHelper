@@ -25,7 +25,12 @@ solve = ["sympy", "numpy"]
 where = ["src"]
 
 [tool.setuptools.package-data]
-mathcoach = ["web/static/*"]
+mathcoach = [
+  "web/static/*",
+  "web/static/vendor/katex/*",
+  "web/static/vendor/katex/contrib/*",
+  "web/static/vendor/katex/fonts/*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

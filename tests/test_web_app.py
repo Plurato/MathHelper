@@ -43,6 +43,34 @@ def test_index_is_served():
     assert "MathCoach" in res.text
 
 
+def test_index_loads_katex_auto_render_assets():
+    client = TestClient(create_app(require_api_key=False))
+
+    res = client.get("/")
+
+    assert res.status_code == 200
+    assert "katex.min.css" in res.text
+    assert "katex.min.js" in res.text
+    assert "auto-render.min.js" in res.text
+    assert "/static/vendor/katex/" in res.text
+    assert "cdn.jsdelivr.net" not in res.text
+
+
+def test_local_katex_assets_are_served():
+    client = TestClient(create_app(require_api_key=False))
+
+    css = client.get("/static/vendor/katex/katex.min.css")
+    js = client.get("/static/vendor/katex/katex.min.js")
+    auto_render = client.get("/static/vendor/katex/contrib/auto-render.min.js")
+
+    assert css.status_code == 200
+    assert "@font-face" in css.text
+    assert js.status_code == 200
+    assert "katex" in js.text.lower()
+    assert auto_render.status_code == 200
+    assert "renderMathInElement" in auto_render.text
+
+
 def test_frontend_assets_are_served():
     client = TestClient(create_app(require_api_key=False))
 
@@ -53,6 +81,16 @@ def test_frontend_assets_are_served():
     assert "mathcoach-shell" in css.text
     assert js.status_code == 200
     assert "renderResult" in js.text
+
+
+def test_frontend_renders_latex_after_dynamic_results():
+    js = Path("src/mathcoach/web/static/app.js").read_text(encoding="utf-8")
+
+    assert "function renderMath" in js
+    assert "renderMathInElement" in js
+    assert 'left: "$"' in js
+    assert 'left: "$$"' in js
+    assert "renderMath(els.resultWorkspace)" in js
 
 
 def test_frontend_css_allows_health_pill_to_wrap_on_mobile():
