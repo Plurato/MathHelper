@@ -111,8 +111,23 @@ def _verify_list(
 ) -> VerificationResult:
     import sympy
 
+    if not isinstance(expected_obj, (list, tuple)):
+        return VerificationResult(
+            method="SymPy 列表验证",
+            status="error",
+            confidence=0.30,
+            detail="expected was not a list after parsing",
+        )
+
+    expected_items = list(expected_obj)
+
     actual_items: list[Any]
-    if isinstance(expr_obj, (list, tuple)):
+    if isinstance(expr_obj, dict):
+        if len(expected_items) == 1 and isinstance(expected_items[0], dict):
+            actual_items = [expr_obj]
+        else:
+            actual_items = list(expr_obj.values())
+    elif isinstance(expr_obj, (list, tuple)):
         actual_items = list(expr_obj)
     elif isinstance(expr_obj, sympy.FiniteSet):
         actual_items = list(expr_obj)
@@ -135,16 +150,6 @@ def _verify_list(
             confidence=0.05,
             detail=f"expr did not evaluate to a list-like value: got {type(expr_obj).__name__}",
         )
-
-    if not isinstance(expected_obj, (list, tuple)):
-        return VerificationResult(
-            method="SymPy 列表验证",
-            status="error",
-            confidence=0.30,
-            detail="expected was not a list after parsing",
-        )
-
-    expected_items = list(expected_obj)
 
     if len(actual_items) != len(expected_items):
         return VerificationResult(
@@ -305,6 +310,12 @@ def _resolve_sampling_ranges(
 def _values_equal(a: Any, b: Any, tolerance: float) -> bool:
     import sympy
 
+    if isinstance(a, dict) or isinstance(b, dict):
+        return _dicts_equal(a, b, tolerance)
+
+    if _is_sequence(a) or _is_sequence(b):
+        return _sequences_equal(a, b, tolerance)
+
     try:
         diff = sympy.simplify(a - b)
         if diff == 0:
@@ -315,6 +326,50 @@ def _values_equal(a: Any, b: Any, tolerance: float) -> bool:
             return False
     except (TypeError, AttributeError):
         return a == b
+
+
+def _dicts_equal(a: Any, b: Any, tolerance: float) -> bool:
+    if not isinstance(a, dict) or not isinstance(b, dict):
+        return False
+    if len(a) != len(b):
+        return False
+
+    unmatched = list(b.items())
+    for ak, av in a.items():
+        match_idx = None
+        for i, (bk, bv) in enumerate(unmatched):
+            if _values_equal(ak, bk, tolerance) and _values_equal(av, bv, tolerance):
+                match_idx = i
+                break
+        if match_idx is None:
+            return False
+        unmatched.pop(match_idx)
+    return True
+
+
+def _sequences_equal(a: Any, b: Any, tolerance: float) -> bool:
+    if not _is_sequence(a) or not _is_sequence(b):
+        return False
+    a_items = list(a)
+    b_items = list(b)
+    if len(a_items) != len(b_items):
+        return False
+
+    unmatched = list(b_items)
+    for av in a_items:
+        match_idx = None
+        for i, bv in enumerate(unmatched):
+            if _values_equal(av, bv, tolerance):
+                match_idx = i
+                break
+        if match_idx is None:
+            return False
+        unmatched.pop(match_idx)
+    return True
+
+
+def _is_sequence(value: Any) -> bool:
+    return isinstance(value, (list, tuple))
 
 
 def _is_sympy_bool(obj: Any) -> bool:
@@ -333,6 +388,7 @@ def _build_local_dict() -> dict[str, Any]:
         "exp", "log", "ln", "Abs",
         "pi", "E", "I", "oo", "true", "false",
         "Rational", "Symbol", "Integer", "Float",
+        "Eq",
         "Min", "Max", "FiniteSet",
         "simplify", "expand", "factor", "trigsimp",
         "solve", "diff", "integrate", "limit", "summation",
@@ -355,6 +411,12 @@ def _parse(expr_value: Any) -> Any:
         return sympy.true if expr_value else sympy.false
     if isinstance(expr_value, (int, float)):
         return sympy.sympify(expr_value)
+    if isinstance(expr_value, list):
+        return [_parse(item) for item in expr_value]
+    if isinstance(expr_value, tuple):
+        return tuple(_parse(item) for item in expr_value)
+    if isinstance(expr_value, dict):
+        return {_parse_mapping_key(k): _parse(v) for k, v in expr_value.items()}
     if isinstance(expr_value, str):
         if not expr_value.strip():
             raise ValueError("expression must be a non-empty string")
@@ -362,7 +424,14 @@ def _parse(expr_value: Any) -> Any:
     raise TypeError(f"unsupported expr type: {type(expr_value).__name__}")
 
 
+def _parse_mapping_key(key: Any) -> Any:
+    if not isinstance(key, str):
+        return _parse(key)
+    try:
+        return _parse(key)
+    except Exception:  # noqa: BLE001 - non-symbol labels remain comparable strings
+        return key
+
+
 def _parse_expected(expected: Any) -> Any:
-    if isinstance(expected, list):
-        return [_parse(item) for item in expected]
     return _parse(expected)

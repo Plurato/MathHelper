@@ -84,6 +84,42 @@ def test_list_with_symbolic_member_passes() -> None:
     assert r.status == "passed"
 
 
+def test_linear_system_solve_dict_matches_expected_values() -> None:
+    """SymPy solve([...], [x, y]) returns a dict for determined systems.
+
+    The verifier should compare the solved values against an expected answer
+    list instead of treating dict keys as the actual values.
+    """
+    a = Assertion(
+        expr="solve([y - 10*x, y - x - 288], [x, y])",
+        expected=[32, 320],
+        description="一次方程组求解",
+    )
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_linear_system_solve_dict_true_matches_expected_mapping() -> None:
+    """Regression for verifier error on solve(..., dict=True).
+
+    SymPy returns list[dict[Symbol, value]], while LLM output often expresses
+    expected mappings as JSON dicts inside the expected list.
+    """
+    a = Assertion(
+        expr="solve([y - 10*x, y - x - 288], [x, y], dict=True)",
+        expected=[{"x": 32, "y": 320}],
+        description="一次方程组求解",
+    )
+    r = verify(a)
+    assert r.status == "passed"
+
+
+def test_nested_list_expected_parses_recursively() -> None:
+    a = Assertion(expr="[[2, 3]]", expected=[[3, 2]])
+    r = verify(a)
+    assert r.status == "passed"
+
+
 # ---------------------------------------------------------------------------
 # Boolean comparison
 # ---------------------------------------------------------------------------
