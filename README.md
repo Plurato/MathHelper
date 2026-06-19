@@ -2,6 +2,8 @@
 
 基于多智能体协作的数学解题与教学辅导系统。系统将解题过程拆分为四个阶段，由不同 Agent 依次完成题目理解、解题规划、求解验证和教学讲解，最终输出结构化的解题过程与学习反馈。
 
+除 CLI 演示外，项目还提供 **本地 Web 应用**：浏览器输入题目、逐步展示四 Agent 流水线结果，并通过 KaTeX 渲染数学公式。
+
 > 详细系统设计见 [design.md](./design.md)。
 
 ## 功能概览
@@ -23,6 +25,13 @@
   ProblemUnderstanding  SolvingPlan   SolvingVerification  TeachingExplanation
 ```
 
+本地 Web 应用在同一套流水线上提供：
+
+- 浏览器 UI：题目输入、学生水平/讲解风格、模型选择
+- 分阶段结果展示与执行追踪（Trace）
+- KaTeX 数学公式渲染
+- REST API：`GET /api/health`、`POST /api/solve`
+
 ## 开发进度
 
 ### 已完成
@@ -30,14 +39,16 @@
 - [x] 四个 Agent 的核心实现（Prompt + Schema + Agent 类）
 - [x] 基于 OpenRouter 的 LLM 调用与 JSON 结构化输出解析
 - [x] 完整 4 Agent 流水线 CLI 演示（`scripts/demo_agents.py`）
+- [x] **Pipeline 编排层**（`src/mathcoach/pipeline.py`）：统一运行四 Agent、汇总阶段状态与 Token 用量
+- [x] **本地 Web 应用**：FastAPI 后端 + 静态前端（`scripts/serve_web.py`）
 - [x] 执行追踪（Trace）：Prompt、推理内容、原始响应、解析结果、Token 用量；区分 LLM 步与 Tool 步
 - [x] Pydantic 数据模型与基础单元测试
 - [x] **数学输出 LaTeX 规范化**：所有展示字段强制 `$...$` 包裹的 LaTeX；JSON 转义冲突自动修复
 - [x] **求解验证接入 SymPy**：基于 `Assertion` 原语的多项断言验证（symbolic / numeric / sampling 三层兜底）；LLM 自评 confidence 由工具结果覆盖
+- [x] **端到端评测框架**（`scripts/evaluate.py`、`src/mathcoach/eval/`）
 
 ### 进行中 / 待开发
 
-- [ ] **Web 前端界面**：题目输入、流程展示、结果可视化（见 `design.md` 第 10 节）；`AnswerItem.latex` 字段已为前端 KaTeX 渲染铺路
 - [ ] **Agent 集成测试**：针对四个 Agent 的端到端测试（需配置 API Key）
 - [ ] **Verifier 自我纠错回路**：当 SymPy 报 failed 时自动把 detail 反馈给解题 Agent 触发重跑
 - [ ] **扩展功能**：错题本、学生画像、RAG 知识库、多轮对话等（见 `design.md` 第 14 节）
@@ -64,7 +75,7 @@ cp .env.example .env
 # 编辑 .env，至少设置 OPENROUTER_API_KEY
 ```
 
-如需后续接入 SymPy 数值验证，可额外安装：
+运行 Web 应用或 SymPy 验证时，建议安装可选依赖：
 
 ```bash
 pip install -e ".[dev,solve]"
@@ -123,23 +134,92 @@ python scripts/demo_agents.py --no-reasoning
 
 ## 运行本地 Web 应用
 
-本地 Web 应用会启动一个 Python 服务，同时提供浏览器界面和 API。
+本地 Web 应用会启动 FastAPI 服务，同时提供浏览器界面和 REST API。
 
 ```bash
 source .venv/bin/activate
 pip install -e ".[dev,solve]"
-.venv/bin/python scripts/serve_web.py
+python scripts/serve_web.py
 ```
 
-默认地址为 `http://127.0.0.1:8000`。运行前请确认 `.env` 中已设置 `OPENROUTER_API_KEY`。也可以指定端口：
+默认地址为 `http://127.0.0.1:8000`。运行前请确认 `.env` 中已设置 `OPENROUTER_API_KEY`。
+
+常用启动参数：
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--host` | 绑定地址 | `127.0.0.1` |
+| `--port` | 绑定端口 | `8000` |
+| `--reload` | 开发模式下代码变更自动重载 | 关闭 |
+
+示例：
 
 ```bash
-.venv/bin/python scripts/serve_web.py --port 8001
+python scripts/serve_web.py --port 8001
+python scripts/serve_web.py --reload
 ```
+
+### Web API
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/` | GET | 浏览器 UI |
+| `/api/health` | GET | 检查服务状态与 API Key 是否已配置 |
+| `/api/solve` | POST | 运行完整 4 Agent 流水线 |
+
+`POST /api/solve` 请求体示例：
+
+```json
+{
+  "question": "解方程 x^2 - 5x + 6 = 0。",
+  "student_level": "高中",
+  "explanation_style": null,
+  "model": null,
+  "include_trace": true
+}
+```
+
+## 运行评测
+
+对 JSON 题集运行端到端评测，并生成报告：
+
+```bash
+python scripts/evaluate.py --limit 5
+python scripts/evaluate.py --problems data/eval/dev.json --full
+```
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--problems` | 题集 JSON 路径 | `data/eval/dev.json` |
+| `--limit` | 仅运行前 N 题 | 全部 |
+| `--full` | 包含教学讲解 Agent（完整 4 Agent） | 关闭 |
+| `--output-dir` | 结果输出目录 | `output/eval` |
+| `--model` | 覆盖默认 OpenRouter 模型 | 使用 `.env` 默认值 |
 
 ## 在代码中使用
 
-各 Agent 继承自 `BaseAgent`，可单独调用或自行编排流水线：
+### 使用 Pipeline 编排
+
+推荐通过 `run_mathcoach_pipeline` 一次性运行完整流水线：
+
+```python
+from mathcoach.pipeline import run_mathcoach_pipeline
+from mathcoach.schemas.inputs import UserQuery
+
+query = UserQuery(question="解方程 x^2 - 5x + 6 = 0。", student_level="高中")
+result = run_mathcoach_pipeline(query)
+
+print(result.analysis)
+print(result.plan)
+print(result.verification)
+print(result.teaching)
+print(result.stages)   # 各阶段耗时与状态
+print(result.usage)    # Token 汇总
+```
+
+### 单独调用 Agent
+
+各 Agent 继承自 `BaseAgent`，也可单独调用或自行编排：
 
 ```python
 from mathcoach.agents import (
@@ -188,15 +268,18 @@ teaching = TeachingExplanationAgent().run(
 pytest -q
 ```
 
-当前测试覆盖 JSON 解析、Schema 校验与 Trace 打印工具，不依赖 LLM API。
+当前测试覆盖 JSON 解析、Schema 校验、SymPy 验证器、Pipeline 编排、Web API 路由与 Trace 打印工具，不依赖 LLM API。
 
 ## 项目结构
 
 ```
 MathHelper/
 ├── design.md                 # 系统设计文档（架构、数据流、扩展方向）
+├── data/eval/                # 评测题集
 ├── scripts/
-│   └── demo_agents.py        # 4 Agent 流水线 CLI 演示
+│   ├── demo_agents.py        # 4 Agent 流水线 CLI 演示
+│   ├── evaluate.py           # 端到端评测入口
+│   └── serve_web.py          # 本地 Web 应用启动脚本
 ├── src/mathcoach/
 │   ├── agents/               # Agent 实现
 │   │   ├── base.py           # BaseAgent 基类
@@ -204,10 +287,14 @@ MathHelper/
 │   │   ├── solving_planning.py
 │   │   ├── solving_verification.py
 │   │   └── teaching_explanation.py
+│   ├── eval/                 # 评测加载、运行、评分与报告
 │   ├── llm/                  # OpenRouter 客户端
+│   ├── pipeline.py           # 四 Agent 流水线编排
 │   ├── prompts/              # 各 Agent 的 Prompt 模板
 │   ├── schemas/              # Pydantic 输入/输出模型
+│   ├── tools/                # SymPy 验证器等工具
 │   ├── utils/                # JSON 解析、Trace 打印等工具
+│   ├── web/                  # FastAPI 应用与静态前端
 │   └── config.py             # 环境变量配置
 └── tests/                    # 单元测试
 ```
@@ -216,7 +303,7 @@ MathHelper/
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `OPENROUTER_API_KEY` | OpenRouter API Key | *(运行演示时必填)* |
+| `OPENROUTER_API_KEY` | OpenRouter API Key | *(运行演示或 Web 应用时必填)* |
 | `OPENROUTER_BASE_URL` | OpenRouter API 地址 | `https://openrouter.ai/api/v1` |
 | `MATHCOACH_DEFAULT_MODEL` | 默认 LLM 模型 | `openai/gpt-4o-mini` |
 | `MATHCOACH_DEFAULT_TEMPERATURE` | 默认采样温度 | `0.2` |
@@ -229,14 +316,14 @@ MathHelper/
 2. 在 `src/mathcoach/prompts/` 编写 System Prompt 与 Few-shot 示例
 3. 在 `src/mathcoach/agents/` 继承 `BaseAgent`，实现 `build_user_prompt()`
 4. 在 `src/mathcoach/agents/__init__.py` 导出公开 API
-5. 在 `scripts/demo_agents.py` 或新的编排脚本中接入流水线
-6. 补充 Schema 单元测试
+5. 在 `src/mathcoach/pipeline.py` 或 `scripts/demo_agents.py` 中接入流水线
+6. 补充 Schema 与 Pipeline 单元测试；Web 行为变更时更新 `tests/test_web_app.py`
 
 下一步优先建议：
 
-1. 为 **求解验证 Agent** 接入 SymPy，实现真实的符号计算与代入验证
-2. 为新增 Schema（`SolvingVerification`、`TeachingExplanation`）补充单元测试
-3. 视需求实现 Web 前端或 API 服务层
+1. 实现 **Verifier 自我纠错回路**，在 SymPy 验证失败时自动重试求解
+2. 补充 **Agent 集成测试**（需 API Key 的端到端用例）
+3. 视需求扩展 Web UI（历史记录、多轮对话等）
 
 ## 支持的题型范围
 
@@ -251,4 +338,4 @@ MathHelper/
 
 ## 分支说明
 
-本项目以 **`main`** 分支为主开发分支，已合并 `master` 分支上的最新功能（完整 4 Agent 实现）。新贡献请基于 `main` 分支进行。
+本项目以 **`main`** 分支为主开发分支。功能开发完成后合并至 `main`；新贡献请基于 `main` 分支进行。
