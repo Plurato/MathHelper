@@ -4,11 +4,88 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MathCoach</title>
+    <link rel="stylesheet" href="/static/app.css">
   </head>
   <body>
-    <main>
-      <h1>MathCoach</h1>
-      <p>本地数学解题与教学 Agent 系统</p>
+    <main class="mathcoach-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">MathCoach-Agent</p>
+          <h1>MathCoach</h1>
+        </div>
+        <div class="health-pill" id="healthStatus">检查环境</div>
+      </header>
+
+      <section class="studio-grid">
+        <form class="solve-panel" id="solveForm">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Question</p>
+              <h2>输入数学题</h2>
+            </div>
+            <button class="primary-action" id="solveButton" type="submit">
+              开始解题
+            </button>
+          </div>
+
+          <label class="input-label" for="questionInput">题目</label>
+          <textarea
+            id="questionInput"
+            name="question"
+            rows="7"
+            placeholder="例如：解方程 x^2 - 5x + 6 = 0。"
+          ></textarea>
+
+          <div class="control-grid">
+            <label>
+              <span>学生水平</span>
+              <select id="studentLevel" name="student_level">
+                <option value="">自动判断</option>
+                <option value="初中">初中</option>
+                <option value="高中" selected>高中</option>
+                <option value="大学">大学</option>
+              </select>
+            </label>
+            <label>
+              <span>讲解风格</span>
+              <select id="explanationStyle" name="explanation_style">
+                <option value="简洁版">简洁版</option>
+                <option value="详细版" selected>详细版</option>
+                <option value="考试技巧版">考试技巧版</option>
+              </select>
+            </label>
+          </div>
+
+          <details class="advanced-settings">
+            <summary>高级设置</summary>
+            <label>
+              <span>模型</span>
+              <input id="modelInput" name="model" placeholder="使用 .env 默认模型">
+            </label>
+          </details>
+        </form>
+
+        <aside class="flow-panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="eyebrow">Agent Flow</p>
+              <h2>执行流程</h2>
+            </div>
+          </div>
+          <div class="agent-flow" id="agentFlow"></div>
+          <canvas id="functionCanvas" width="520" height="220" aria-label="函数曲线装饰"></canvas>
+        </aside>
+      </section>
+
+      <section class="error-panel" id="errorPanel" hidden></section>
+      <section class="result-workspace" id="resultWorkspace">
+        <div class="empty-state">
+          <p class="eyebrow">Ready</p>
+          <h2>等待题目</h2>
+          <p>提交后会在这里显示答案、验证、解题过程和教学讲解。</p>
+        </div>
+      </section>
     </main>
+    <script src="/static/app.js"></script>
   </body>
 </html>

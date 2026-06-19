@@ -41,6 +41,18 @@ def test_index_is_served():
     assert "MathCoach" in res.text
 
 
+def test_frontend_assets_are_served():
+    client = TestClient(create_app(require_api_key=False))
+
+    css = client.get("/static/app.css")
+    js = client.get("/static/app.js")
+
+    assert css.status_code == 200
+    assert "mathcoach-shell" in css.text
+    assert js.status_code == 200
+    assert "renderResult" in js.text
+
+
 def test_solve_returns_pipeline_result():
     client = TestClient(
         create_app(pipeline_runner=_fake_runner, require_api_key=False)
