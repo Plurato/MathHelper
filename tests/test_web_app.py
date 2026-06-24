@@ -150,6 +150,82 @@ def test_solve_blank_question_returns_validation_error():
     assert res.json()["detail"]["code"] == "invalid_question"
 
 
+def test_frontend_uses_streaming_endpoint():
+    js = Path("src/mathcoach/web/static/app.js").read_text(encoding="utf-8")
+
+    assert "/api/solve/stream" in js
+    assert "getReader" in js
+    assert "stage_completed" in js
+
+
+def test_solve_stream_emits_progress_events():
+    def stream_runner(query, *, agent_kwargs=None, on_event=None):
+        on_event(
+            {
+                "type": "stage_started",
+                "key": "understanding",
+                "label": "题目理解",
+                "attempt": 1,
+            }
+        )
+        on_event(
+            {
+                "type": "stage_completed",
+                "key": "understanding",
+                "label": "题目理解",
+                "attempt": 1,
+                "output": {"problem_type": "一元二次方程"},
+            }
+        )
+        on_event({"type": "done", "result": {"ok": True}})
+        return None
+
+    client = TestClient(
+        create_app(stream_pipeline_runner=stream_runner, require_api_key=False)
+    )
+
+    res = client.post("/api/solve/stream", json={"question": "解方程"})
+
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/event-stream")
+    body = res.text
+    assert '"type": "stage_started"' in body
+    assert '"type": "stage_completed"' in body
+    assert "一元二次方程" in body
+    assert '"type": "done"' in body
+
+
+def test_solve_stream_reports_pipeline_error():
+    def stream_runner(query, *, agent_kwargs=None, on_event=None):
+        raise PipelineExecutionError(
+            stage_key="planning",
+            message="RuntimeError: planner exploded",
+            stages=[],
+        )
+
+    client = TestClient(
+        create_app(stream_pipeline_runner=stream_runner, require_api_key=False)
+    )
+
+    res = client.post("/api/solve/stream", json={"question": "解方程"})
+
+    assert res.status_code == 200
+    body = res.text
+    assert '"type": "error"' in body
+    assert "pipeline_failed" in body
+    assert "planner exploded" in body
+
+
+def test_solve_stream_missing_key_returns_structured_error(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "")
+    client = TestClient(create_app(require_api_key=True))
+
+    res = client.post("/api/solve/stream", json={"question": "1+1"})
+
+    assert res.status_code == 503
+    assert res.json()["detail"]["code"] == "missing_api_key"
+
+
 def test_solve_pipeline_failure_returns_stage_error():
     client = TestClient(
         create_app(pipeline_runner=_failing_runner, require_api_key=False)
