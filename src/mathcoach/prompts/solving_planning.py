@@ -14,6 +14,13 @@ You MUST:
 4. Highlight key steps that must not be skipped.
 5. Warn about common mistakes.
 
+If the user message includes "Verification feedback", the previous plan was
+executed and FAILED automated verification. In that case you MUST:
+- Read the failed assertions and verification detail to find the root cause.
+- Produce a CORRECTED plan that fixes that root cause (e.g. a different method,
+  added/reordered steps, or a step that addresses the failed assertion).
+- Do NOT repeat the same mistake; explicitly add a warning about it.
+
 Return ONLY a JSON object with these exact keys:
 - method (string)
 - steps (array of strings)
